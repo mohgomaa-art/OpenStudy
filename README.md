@@ -170,20 +170,20 @@ NotebookMG/
 
 <table>
   <tr>
-    <td width="50%"><img src="images/document-grounded-answer.png" width="100%" alt="Document-grounded chat answer"/><p align="center"><sub><b>Document-grounded chat</b><br/>Answers cite your uploaded files</sub></p></td>
-    <td width="50%"><img src="images/mind-map-template.png" width="100%" alt="Mind map visual template"/><p align="center"><sub><b>Interactive mind maps</b><br/>Generated from your notes</sub></p></td>
+    <td width="50%"><img src="images/image_2026-06-14_17-28-29.png" width="100%" alt="Document-grounded chat answer"/><p align="center"><sub><b>Document-grounded chat</b><br/>Answers cite your uploaded files</sub></p></td>
+    <td width="50%"><img src="images/image_2026-06-13_20-55-26.png" width="100%" alt="Mind map visual template"/><p align="center"><sub><b>Interactive mind maps</b><br/>Generated from your notes</sub></p></td>
   </tr>
   <tr>
-    <td width="50%"><img src="images/flashcards-clinical-vignette.png" width="100%" alt="Flashcards and OSCE clinical vignette"/><p align="center"><sub><b>Flashcards & OSCE vignettes</b><br/>Memory aids and clinical practice cases</sub></p></td>
-    <td width="50%"><img src="images/pathophysiology-flow-template.png" width="100%" alt="Pathophysiology flow template"/><p align="center"><sub><b>Pathophysiology flow</b><br/>Expandable step-by-step disease process</sub></p></td>
+    <td width="50%"><img src="images/image_2026-06-13_20-55-27.png" width="100%" alt="Flashcards and OSCE clinical vignette"/><p align="center"><sub><b>Flashcards & OSCE vignettes</b><br/>Memory aids and clinical practice cases</sub></p></td>
+    <td width="50%"><img src="images/image_2026-06-14_02-19-47.png" width="100%" alt="Pathophysiology flow template"/><p align="center"><sub><b>Pathophysiology flow</b><br/>Expandable step-by-step disease process</sub></p></td>
   </tr>
   <tr>
-    <td width="50%"><img src="images/mnemonic-cards-template.png" width="100%" alt="Mnemonic cards template"/><p align="center"><sub><b>Mnemonic cards</b><br/>Visual recall aids for any topic</sub></p></td>
-    <td width="50%"><img src="images/disease-profile-tables.png" width="100%" alt="Disease profile comparison tables"/><p align="center"><sub><b>Disease comparison tables</b><br/>Structured etiology and pathophysiology breakdowns</sub></p></td>
+    <td width="50%"><img src="images/image_2026-06-14_02-21-24.png" width="100%" alt="Mnemonic cards template"/><p align="center"><sub><b>Mnemonic cards</b><br/>Visual recall aids for any topic</sub></p></td>
+    <td width="50%"><img src="images/image_2026-06-13_20-55-26%20%282%29.png" width="100%" alt="Disease profile comparison tables"/><p align="center"><sub><b>Disease comparison tables</b><br/>Structured etiology and pathophysiology breakdowns</sub></p></td>
   </tr>
   <tr>
-    <td width="50%"><img src="images/study-aids-mnemonics.png" width="100%" alt="Mnemonic study aids"/><p align="center"><sub><b>Categorized study aids</b><br/>Memory tools organized by topic</sub></p></td>
-    <td width="50%"><img src="images/onboarding-decision-flow.png" width="100%" alt="Onboarding decision flow"/><p align="center"><sub><b>Guided onboarding</b><br/>Walks new users through the study cycle</sub></p></td>
+    <td width="50%"><img src="images/image_2026-06-13_20-55-26%20%283%29.png" width="100%" alt="Mnemonic study aids"/><p align="center"><sub><b>Categorized study aids</b><br/>Memory tools organized by topic</sub></p></td>
+    <td width="50%"><img src="images/image_2026-06-14_17-28-28.png" width="100%" alt="Onboarding decision flow"/><p align="center"><sub><b>Guided onboarding</b><br/>Walks new users through the study cycle</sub></p></td>
   </tr>
 </table>
 
