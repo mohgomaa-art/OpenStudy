@@ -1,0 +1,144 @@
+<!-- HEAD -->
+<style>
+    .timeline-feed {
+        position: relative;
+    }
+    .timeline-center-line {
+        position: absolute;
+        left: 50%;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: linear-gradient(to bottom, var(--accent, #7c3aed) 0%, var(--accent-text, #c084fc) 50%, var(--accent-border, rgba(124,58,237,0.2)) 100%);
+        transform: translateX(-50%);
+    }
+    .feed-item {
+        display: flex;
+        justify-content: flex-start;
+        width: 100%;
+        margin-bottom: 2rem;
+        position: relative;
+    }
+    .feed-item:nth-child(even) {
+        justify-content: flex-end;
+    }
+    .feed-dot {
+        position: absolute;
+        left: 50%;
+        top: 24px;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background-color: #09090b;
+        border: 2.5px solid var(--accent, #8b5cf6);
+        transform: translateX(-50%);
+        transition: transform 0.25s, box-shadow 0.25s;
+        z-index: 10;
+    }
+    .feed-item:hover .feed-dot {
+        transform: translateX(-50%) scale(1.3);
+        box-shadow: 0 0 10px var(--accent-glow, rgba(139, 92, 246, 0.5));
+    }
+    .feed-card {
+        width: 45%;
+        transition: transform 0.2s, border-color 0.2s;
+    }
+    .feed-item:hover .feed-card {
+        transform: translateY(-2px);
+        border-color: var(--accent, #8b5cf6);
+    }
+    /* Mobile responsive override */
+    @media (max-width: 640px) {
+        .timeline-center-line {
+            left: 20px;
+            transform: none;
+        }
+        .feed-item {
+            justify-content: flex-start !important;
+            padding-left: 40px;
+            box-sizing: border-box;
+        }
+        .feed-dot {
+            left: 20px;
+            transform: translateX(-50%) !important;
+        }
+        .feed-card {
+            width: 100% !important;
+        }
+    }
+</style>
+
+<!-- BODY -->
+<div class="w-full max-w-4xl flex flex-col gap-6 animate-fade-in py-4">
+    <!-- Header title -->
+    <div class="text-center mb-4">
+        <h2 id="timeline-title" class="text-xl font-bold text-white">Chronology</h2>
+        <p class="text-xs text-zinc-500 mt-1">Alternating chronological feed</p>
+    </div>
+
+    <div class="timeline-feed w-full">
+        <!-- Center line indicator -->
+        <div class="timeline-center-line"></div>
+        
+        <!-- Events feed wrapper -->
+        <div id="timeline-feed-list" class="w-full flex flex-col gap-4">
+            <!-- Alternating items go here -->
+        </div>
+    </div>
+</div>
+
+<!-- SCRIPT -->
+<script>
+    document.getElementById('template-name-label').innerText = 'Vertical Feed Timeline';
+
+    const COLOR_MAP = {
+        purple: { stroke: "var(--accent, #c084fc)", glow: "var(--accent-glow, rgba(192, 132, 252, 0.5))", bg: "bg-[var(--accent-bg,rgba(124,58,237,0.1))] text-[var(--accent-text,#c084fc)] border-[var(--accent-border,rgba(124,58,237,0.2))]" },
+        teal: { stroke: "#2dd4bf", glow: "rgba(45, 212, 191, 0.5)", bg: "bg-teal-500/10 text-teal-400 border-teal-500/20" },
+        coral: { stroke: "#fb923c", glow: "rgba(251, 146, 60, 0.5)", bg: "bg-orange-500/10 text-orange-400 border-orange-500/20" },
+        blue: { stroke: "#60a5fa", glow: "rgba(96, 165, 250, 0.5)", bg: "bg-blue-500/10 text-blue-400 border-blue-500/20" },
+        amber: { stroke: "#fbbf24", glow: "rgba(251, 191, 36, 0.5)", bg: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20" }
+    };
+
+    function renderFeed() {
+        const container = document.getElementById('timeline-feed-list');
+        container.innerHTML = '';
+        
+        const title = VISUAL_DATA.title || "Timeline Feed";
+        document.getElementById('timeline-title').innerText = title;
+        
+        const events = VISUAL_DATA.events || [];
+        
+        events.forEach((event, idx) => {
+            const colorConfig = COLOR_MAP[event.color] || COLOR_MAP.purple;
+            
+            const item = document.createElement('div');
+            item.setAttribute('class', 'feed-item relative w-full');
+            item.setAttribute('style', `--accent: ${colorConfig.stroke}; --accent-glow: ${colorConfig.glow};`);
+
+            // Dot on center line
+            const dot = document.createElement('div');
+            dot.setAttribute('class', 'feed-dot');
+            item.appendChild(dot);
+
+            // Left/Right aligned Card
+            const card = document.createElement('div');
+            card.setAttribute('class', 'feed-card glass-panel p-5 rounded-2xl bg-zinc-950/15 flex flex-col gap-2 border border-zinc-800/50');
+            card.setAttribute('style', `border-left: 3px solid ${colorConfig.stroke};`);
+            
+            card.innerHTML = `
+                <div class="flex items-center flex-wrap gap-2.5">
+                    <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold border ${colorConfig.bg}">
+                        ${event.time}
+                    </span>
+                    <h3 class="text-base font-bold text-white leading-snug">${event.label}</h3>
+                </div>
+                <p class="text-zinc-400 text-xs mt-1.5 leading-relaxed">${event.detail}</p>
+            `;
+            
+            item.appendChild(card);
+            container.appendChild(item);
+        });
+    }
+
+    renderFeed();
+</script>

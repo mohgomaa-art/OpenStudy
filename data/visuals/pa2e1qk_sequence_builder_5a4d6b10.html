@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html data-theme="clinical" lang="en" data-theme="clinical">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pathophysiology of Acute Kidney Injury</title>
+    <style>
+        :root {
+            --bg: #f8fafc; --surface: #ffffff; --border: #e2e8f0; --text: #0f172a; --text-secondary: #64748b; --accent: #2563eb; --accent-soft: #dbeafe; --accent-2: #0d9488; --accent-2-soft: #ccfbf1; --success: #16a34a; --warning: #d97706; --danger: #dc2626;
+        }
+        [data-theme="clinical"] {
+            --bg: #f8fafc; --surface: #ffffff; --border: #e2e8f0; --text: #0f172a; --text-secondary: #64748b; --accent: #2563eb; --accent-soft: #dbeafe; --accent-2: #0d9488; --accent-2-soft: #ccfbf1; --success: #16a34a; --warning: #d97706; --danger: #dc2626;
+        }
+        [data-theme="nightshift"] {
+            --bg: #0a0e17; --surface: #131a26; --border: rgba(255,255,255,0.08); --text: #e2e8f0; --text-secondary: #94a3b8; --accent: #38bdf8; --accent-soft: rgba(56,189,248,0.15); --accent-2: #a78bfa; --accent-2-soft: rgba(167,139,250,0.15); --success: #4ade80; --warning: #fbbf24; --danger: #f87171;
+        }
+        [data-theme="botanica"] {
+            --bg: #f6f8f1; --surface: #ffffff; --border: #dde6d5; --text: #2b3a26; --text-secondary: #6b7d63; --accent: #4d7c4a; --accent-soft: #e3ecdf; --accent-2: #c9852f; --accent-2-soft: #f6e6cf; --success: #4d7c4a; --warning: #c9852f; --danger: #b3473a;
+        }
+        [data-theme="bloom"] {
+            --bg: #fff5f7; --surface: #ffffff; --border: #fbd5e0; --text: #4a2540; --text-secondary: #9c7a8f; --accent: #ec4899; --accent-soft: #fce7f3; --accent-2: #14b8a6; --accent-2-soft: #ccfbf1; --success: #22c55e; --warning: #f59e0b; --danger: #e11d48;
+        }
+        [data-theme="solstice"] {
+            --bg: #fff8f0; --surface: #ffffff; --border: #fde4cf; --text: #3a2418; --text-secondary: #8a6a55; --accent: #f97316; --accent-soft: #ffedd5; --accent-2: #0ea5e9; --accent-2-soft: #e0f2fe; --success: #65a30d; --warning: #eab308; --danger: #dc2626;
+        }
+        [data-theme="arcane"] {
+            --bg: #0d0a1a; --surface: #1a1430; --border: rgba(167, 139, 250, 0.15); --text: #f1eaff; --text-secondary: #a89bc4; --accent: #c084fc; --accent-soft: rgba(192, 132, 252, 0.15); --accent-2: #2dd4bf; --accent-2-soft: rgba(45, 212, 191, 0.15); --success: #34d399; --warning: #fbbf24; --danger: #fb7185;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            overflow-y: auto;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            padding: 20px;
+            box-sizing: border-box;
+            margin-top: 20px;
+            margin-bottom: 20px;
+        }
+
+        h1, h2, h3 {
+            color: var(--text);
+            margin-top: 0;
+            margin-bottom: 15px;
+        }
+
+        h1 {
+            font-size: 2em;
+            text-align: center;
+        }
+
+        p {
+            color: var(--text-secondary);
+            margin-bottom: 10px;
+        }
+
+        .intro-text {
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin-bottom: 25px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .category-selection {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 25px;
+            justify-content: center;
+        }
+
+        .category-card {
+            flex: 1 1 calc(33% - 20px);
+            min-width: 280px;
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .category-card:hover {
+            border-color: var(--accent);
+            box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+            transform: translateY(-3px);
+        }
+
+        .category-card.active {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-soft);
+            background-color: var(--accent-soft);
+        }
+
+        .category-card h3 {
+            color: var(--accent);
+            margin-bottom: 5px;
+            font-size: 1.3em;
+        }
+        .category-card.active h3 {
+             color: var(--accent);
+        }
+        .category-card p {
+            color: var(--text-secondary);
+            font-size: 0.9em;
+        }
+
+        #detail-view {
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 25px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            min-height: 200px;
+            display: none;
+            flex-direction: column;
+            gap: 20px;
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .detail-section {
+            padding: 15px;
+            border-left: 4px solid var(--accent-2);
+            background-color: var(--accent-2-soft);
+            border-radius: 5px;
+        }
+
+        .detail-section h4 {
+            color: var(--accent-2);
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .detail-section ul {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .detail-section ul li {
+            position: relative;
+            padding-left: 20px;
+            margin-bottom: 8px;
+            color: var(--text);
+            font-size: 0.95em;
+        }
+
+        .detail-section ul li:last-child {
+            margin-bottom: 0;
+        }
+
+        .detail-section ul li::before {
+            content: '•';
+            color: var(--accent);
+            position: absolute;
+            left: 0;
+            font-weight: bold;
+        }
+
+        .detail-section strong {
+            color: var(--text);
+        }
+        .detail-section span.highlight {
+            color: var(--accent);
+            font-weight: bold;
+        }
+
+        @media (max-width: 768px) {
+            .category-card {
+                flex: 1 1 calc(50% - 15px);
+                min-width: unset;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .category-selection {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .category-card {
+                flex: 1 1 100%;
+            }
+            .container {
+                padding: 15px;
+            }
+            h1 {
+                font-size: 1.8em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Pathophysiology of Acute Kidney Injury</h1>
+            <div class="intro-text">
+                <p>Acute Kidney Injury (AKI) is a complex syndrome characterized by a rapid decline in kidney function, leading to the accumulation of waste products and dysregulation of fluid and electrolyte balance.</p>
+                <p>Explore the three main types of AKI below to understand their specific mechanisms and causes.</p>
+            </div>
+        </header>
+
+        <section class="category-selection">
+            <div class="category-card" data-aki-type="prerenal">
+                <h3>Prerenal AKI</h3>
+                <p>Inadequate blood flow to the kidneys.</p>
+            </div>
+            <div class="category-card" data-aki-type="intrinsic">
+                <h3>Intrinsic AKI</h3>
+                <p>Direct damage to kidney tissue.</p>
+            </div>
+            <div class="category-card" data-aki-type="postrenal">
+                <h3>Postrenal AKI</h3>
+                <p>Obstruction of urine outflow.</p>
+            </div>
+        </section>
+
+        <section id="detail-view">
+            <!-- Details will be loaded here dynamically -->
+        </section>
+    </div>
+
+    <script>
+        const akiData = {
+            prerenal: {
+                title: "Prerenal AKI: Inadequate Renal Perfusion",
+                sections: [
+                    {
+                        heading: "Core Mechanism",
+                        content: `
+                            <ul>
+                                <li><span class="highlight">Insufficient blood flow</span> to the kidneys.</li>
+                                <li>Kidney structure is <span class="highlight">intact</span>, but function is impaired due to hypoperfusion.</li>
+                            </ul>
+                        `
+                    },
+                    {
+                        heading: "Common Causes",
+                        content: `
+                            <ul>
+                                <li><strong>Hypovolemia:</strong> Hemorrhage, severe dehydration, excessive fluid loss (vomiting, diarrhea, burns).</li>
+                                <li><strong>Decreased effective circulating volume:</strong> Congestive heart failure, liver cirrhosis with ascites, nephrotic syndrome.</li>
+                                <li><strong>Systemic vasodilation:</strong> Sepsis, anaphylaxis.</li>
+                                <li><strong>Renal vasoconstriction:</strong> NSAIDs, hepatorenal syndrome.</li>
+                            </ul>
+                        `
+                    },
+                    {
+                        heading: "Key Point",
+                        content: `
+                            <ul>
+                                <li>Often <span class="highlight">reversible</span> if underlying hypoperfusion is corrected promptly.</li>
+                                <li>Prolonged or severe prerenal AKI can progress to <span class="highlight">intrinsic AKI</span>.</li>
+                            </ul>
+                        `
+                    }
+                ]
+            },
+            intrinsic: {
+                title: "Intrinsic AKI: Direct Kidney Tissue Damage",
+                sections: [
+                    {
+                        heading: "Core Mechanism",
+                        content: `
+                            <ul>
+                                <li>Direct damage to the <span class="highlight">kidney tissue itself</span> (glomeruli, tubules, interstitium, renal vasculature).</li>
+                            </ul>
+                        `
+                    },
+                    {
+                        heading: "Most Common Type: Acute Tubular Necrosis (ATN)",
+                        content: `
+                            <ul>
+                                <li><strong>Ischemic ATN:</strong> Consequence of severe or prolonged prerenal AKI, leading to sustained hypoperfusion and injury to tubular epithelial cells.</li>
+                                <li><strong>Nephrotoxic ATN:</strong> Caused by exposure to exogenous agents (e.g., aminoglycoside antibiotics, contrast dyes, cisplatin) or endogenous toxins (e.g., myoglobin from rhabdomyolysis, hemoglobin from hemolysis).</li>
+                            </ul>
+                        `
+                    },
+                    {
+                        heading: "Other Causes",
+                        content: `
+                            <ul>
+                                <li><strong>Glomerulonephritis:</strong> Inflammation of the glomeruli, often autoimmune.</li>
+                                <li><strong>Acute Interstitial Nephritis (AIN):</strong> Inflammation of the renal interstitium, commonly drug-induced (e.g., penicillin, NSAIDs).</li>
+                                <li><strong>Vascular disorders:</strong> Vasculitis, thrombotic microangiopathies, renal artery stenosis/embolism.</li>
+                            </ul>
+                        `
+                    }
+                ]
+            },
+            postrenal: {
+                title: "Postrenal AKI: Obstruction of Urine Flow",
+                sections: [
+                    {
+                        heading: "Core Mechanism",
+                        content: `
+                            <ul>
+                                <li>Obstruction of urine flow anywhere from the <span class="highlight">renal pelvis to the urethra</span>.</li>
+                                <li>Backup of urine pressure reduces <span class="highlight">Glomerular Filtration Rate (GFR)</span>.</li>
+                            </ul>
+                        `
+                    },
+                    {
+                        heading: "Key Condition for Significance",
+                        content: `
+                            <ul>
+                                <li><strong>Bilateral obstruction</strong> or obstruction of a <span class="highlight">solitary kidney</span> is necessary to cause significant AKI.</li>
+                                <li>Unilateral obstruction often compensated by the other kidney.</li>
+                            </ul>
+                        `
+                    },
+                    {
+                        heading: "Common Causes of Obstruction",
+                        content: `
+                            <ul>
+                                <li><strong>Kidney stones (nephrolithiasis):</strong> Can obstruct ureters.</li>
+                                <li><strong>Benign Prostatic Hyperplasia (BPH) or prostate cancer:</strong> Common causes of bladder outlet obstruction in men.</li>
+                                <li><strong>Tumors:</strong> Pelvic tumors compressing ureters or bladder.</li>
+                                <li><strong>Blood clots</strong> in the urinary tract.</li>
+                                <li><strong>Neurogenic bladder:</strong> Impaired bladder emptying due to neurological dysfunction.</li>
+                            </ul>
+                        `
+                    },
+                    {
+                        heading: "Key Point",
+                        content: `
+                            <ul>
+                                <li>Often <span class="highlight">reversible</span> if the obstruction is relieved promptly.</li>
+                            </ul>
+                        `
+                    }
+                ]
+            }
+        };
+
+        const categoryCards = document.querySelectorAll('.category-card');
+        const detailView = document.getElementById('detail-view');
+
+        categoryCards.forEach(card => {
+            card.addEventListener('click', () => {
+                // Remove active class from all cards
+                categoryCards.forEach(c => c.classList.remove('active'));
+
+                // Add active class to the clicked card
+                card.classList.add('active');
+
+                // Get the AKI type from the data attribute
+                const akiType = card.dataset.akiType;
+
+                // Render details
+                renderDetailView(akiType);
+            });
+        });
+
+        function renderDetailView(type) {
+            const data = akiData[type];
+            if (!data) {
+                detailView.style.display = 'none';
+                return;
+            }
+
+            let htmlContent = `<h2>${data.title}</h2>`;
+            data.sections.forEach(section => {
+                htmlContent += `
+                    <div class="detail-section">
+                        <h4>${section.heading}</h4>
+                        ${section.content}
+                    </div>
+                `;
+            });
+
+            detailView.innerHTML = htmlContent;
+            detailView.style.display = 'flex';
+            detailView.style.animation = 'none';
+            void detailView.offsetWidth; /* Trigger reflow to restart animation */
+            detailView.style.animation = null;
+        }
+    </script>
+<script>(function(){function rh(){var h=document.documentElement.scrollHeight||document.body.scrollHeight;if(h)window.parent.postMessage({__visualHeight:h},"*");}setTimeout(rh,150);setTimeout(rh,700);setTimeout(rh,2000);window.addEventListener("resize",rh);window.addEventListener("message",function(e){if(e.data&&e.data.__setTheme){document.documentElement.setAttribute("data-theme",e.data.__setTheme);setTimeout(rh,100);}});})()</script></body>
+</html>

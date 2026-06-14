@@ -1,0 +1,423 @@
+<!-- HEAD -->
+<style>
+    .mindmap-svg {
+        background-color: transparent;
+        cursor: grab;
+    }
+    .mindmap-svg:active {
+        cursor: grabbing;
+    }
+    .node-center {
+        fill: url(#centerGrad);
+        stroke: #a78bfa;
+        stroke-width: 2px;
+        transition: filter 0.3s;
+    }
+    .node-center:hover {
+        filter: drop-shadow(0 0 12px rgba(167, 139, 250, 0.6));
+    }
+    .node-branch {
+        cursor: pointer;
+        transition: filter 0.3s;
+    }
+    .node-branch:hover {
+        filter: drop-shadow(0 0 8px var(--glow-color));
+        
+    }
+    .node-child {
+        fill: #ffffff;
+        stroke: #cbd5e1;
+        stroke-width: 1px;
+        transition: filter 0.2s, stroke 0.2s;
+    }
+    .node-child:hover {
+        stroke: #94a3b8;
+        filter: drop-shadow(0 0 6px rgba(0, 0, 0, 0.1));
+    }
+    .connector-line {
+        fill: none;
+        stroke-dasharray: 2000;
+        stroke-dashoffset: 0;
+        animation: drawLine 1.5s ease-out forwards;
+        transition: stroke-width 0.2s;
+    }
+    @keyframes drawLine {
+        from { stroke-dashoffset: 2000; }
+        to { stroke-dashoffset: 0; }
+    }
+</style>
+
+<!-- BODY -->
+<div id="canvas-wrap" class="w-full glass-panel rounded-2xl overflow-hidden relative flex flex-col animate-fade-in" style="height:600px;resize:vertical;min-height:350px;max-height:1800px">
+    <!-- SVG Canvas -->
+    <svg id="canvas" class="w-full h-full mindmap-svg" viewBox="0 0 900 600">
+        <!-- Definitions for gradients/markers -->
+        <defs>
+            <radialGradient id="centerGrad" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stop-color="#f3e8ff" />
+                <stop offset="100%" stop-color="#e9d5ff" />
+            </radialGradient>
+            <!-- Drop shadow filters -->
+            <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+                <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.15" />
+            </filter>
+        </defs>
+        
+        <!-- Zoom/Pan Group wrapper -->
+        <g id="viewport">
+            <g id="links-group"></g>
+            <g id="nodes-group"></g>
+        </g>
+    </svg>
+    
+    <!-- Controls Overlay -->
+    <div class="absolute bottom-4 right-4 flex gap-2">
+        <button onclick="resetZoom()" class="glass-panel w-9 h-9 flex items-center justify-center rounded-lg text-zinc-600 hover:text-black hover:border-zinc-300 bg-white/60" title="Recenter">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+        </button>
+        <button onclick="zoom(1.2)" class="glass-panel w-9 h-9 flex items-center justify-center rounded-lg text-zinc-600 hover:text-black hover:border-zinc-300 bg-white/60" title="Zoom In">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+        </button>
+        <button onclick="zoom(0.8)" class="glass-panel w-9 h-9 flex items-center justify-center rounded-lg text-zinc-600 hover:text-black hover:border-zinc-300 bg-white/60" title="Zoom Out">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path></svg>
+        </button>
+    </div>
+    
+    <!-- Instruction overlay -->
+    <div class="absolute top-4 left-4 text-xs text-zinc-500 pointer-events-none">
+        Drag to Pan • Scroll to Zoom • Click branches to toggle sub-elements
+    </div>
+</div>
+
+<!-- SCRIPT -->
+<script>
+    document.getElementById('template-name-label').innerText = 'Interactive Mind Map';
+
+    const COLOR_MAP = {
+        purple: { fill: "#ede9fe", stroke: "#8b5cf6", glow: "rgba(139, 92, 246, 0.4)" },
+        teal: { fill: "#ccfbf1", stroke: "#14b8a6", glow: "rgba(20, 184, 166, 0.4)" },
+        coral: { fill: "#ffedd5", stroke: "#f97316", glow: "rgba(249, 115, 22, 0.4)" },
+        blue: { fill: "#dbeafe", stroke: "#3b82f6", glow: "rgba(59, 130, 246, 0.4)" },
+        amber: { fill: "#fef3c7", stroke: "#f59e0b", glow: "rgba(245, 158, 11, 0.4)" }
+    };
+
+    // Zoom & Pan State
+    let zoomLevel = 1.0;
+    let panX = 0;
+    let panY = 0;
+    let isDragging = false;
+    let startX = 0;
+    let startY = 0;
+
+    const viewport = document.getElementById('viewport');
+    const canvas = document.getElementById('canvas');
+
+    // Setup drag and drop for viewport panning
+    canvas.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        startX = e.clientX - panX;
+        startY = e.clientY - panY;
+    });
+
+    window.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        panX = e.clientX - startX;
+        panY = e.clientY - startY;
+        updateTransform();
+    });
+
+    window.addEventListener('mouseup', () => {
+        isDragging = false;
+    });
+
+    canvas.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
+        zoom(zoomFactor);
+    });
+
+    function zoom(factor) {
+        zoomLevel = Math.max(0.4, Math.min(3.0, zoomLevel * factor));
+        updateTransform();
+    }
+
+    function resetZoom() {
+        zoomLevel = 1.0;
+        panX = 0;
+        panY = 0;
+        updateTransform();
+    }
+
+    function updateTransform() {
+        viewport.setAttribute('transform', `translate(${450 + panX}, ${300 + panY}) scale(${zoomLevel}) translate(-450, -300)`);
+    }
+
+    // Mind Map Layout Engine
+    const collapsedBranches = new Set();
+
+    function toggleBranch(branchIndex) {
+        if (collapsedBranches.has(branchIndex)) {
+            collapsedBranches.delete(branchIndex);
+        } else {
+            collapsedBranches.add(branchIndex);
+        }
+        renderMindMap();
+    }
+
+    function renderMindMap() {
+        const linksGroup = document.getElementById('links-group');
+        const nodesGroup = document.getElementById('nodes-group');
+        
+        linksGroup.innerHTML = '';
+        nodesGroup.innerHTML = '';
+        
+        const centerCol = 450;
+        const centerRow = 300;
+        const title = VISUAL_DATA.center || VISUAL_DATA.title || "Topic";
+        const branches = VISUAL_DATA.branches || [];
+
+        // 1. Draw Center Node
+        const centerG = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        centerG.setAttribute("transform", `translate(${centerCol}, ${centerRow})`);
+        
+        const centerCircle = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+        const centerTextWidth = Math.min(220, title.length * 10 + 40);
+        centerCircle.setAttribute("x", -centerTextWidth / 2);
+        centerCircle.setAttribute("y", -24);
+        centerCircle.setAttribute("width", centerTextWidth);
+        centerCircle.setAttribute("height", 48);
+        centerCircle.setAttribute("rx", 24);
+        centerCircle.setAttribute("class", "node-center shadow-lg");
+        centerCircle.setAttribute("filter", "url(#shadow)");
+        centerG.appendChild(centerCircle);
+
+        const centerText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        centerText.setAttribute("text-anchor", "middle");
+        centerText.setAttribute("y", 6);
+        centerText.setAttribute("fill", "#1e1b4b");
+        centerText.setAttribute("font-weight", "bold");
+        centerText.setAttribute("font-size", "15px");
+        centerText.textContent = title;
+        centerG.appendChild(centerText);
+
+        nodesGroup.appendChild(centerG);
+
+        // 2. Draw Branch and Child Nodes
+        const branchCount = branches.length;
+        if (branchCount === 0) return;
+
+        branches.forEach((branch, idx) => {
+            // Distribute angles evenly (starting at 0 degrees)
+            const angle = (idx * 2 * Math.PI) / branchCount - (Math.PI / 6); 
+            const dist1 = 200; // Radial distance to branch node
+            const bx = centerCol + dist1 * Math.cos(angle);
+            const by = centerRow + dist1 * Math.sin(angle);
+            
+            const colorConfig = COLOR_MAP[branch.color] || COLOR_MAP.purple;
+            const isCollapsed = collapsedBranches.has(idx);
+
+            // Draw line to Branch
+            const line = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            // Draw a beautiful cubic bezier curve from center to branch
+            const cp1x = centerCol + (dist1 / 2) * Math.cos(angle);
+            const cp1y = centerRow;
+            const cp2x = bx - (dist1 / 3) * Math.cos(angle);
+            const cp2y = by;
+            line.setAttribute("d", `M ${centerCol} ${centerRow} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${bx} ${by}`);
+            line.setAttribute("class", "connector-line");
+            line.setAttribute("stroke", colorConfig.stroke);
+            line.setAttribute("stroke-width", "3");
+            linksGroup.appendChild(line);
+
+            // Draw children lines & nodes if not collapsed
+            if (!isCollapsed && branch.children && branch.children.length > 0) {
+                const childCount = branch.children.length;
+                
+                // 1. Calculate initial unrelaxed positions
+                const childNodes = branch.children.map((child, cIdx) => {
+                    const spreadAngle = Math.PI / 1.8; 
+                    const childAngle = childCount <= 1 
+                        ? angle 
+                        : angle - (spreadAngle / 2) + (cIdx * spreadAngle) / (childCount - 1);
+                    const dist2 = 140 + (cIdx % 2) * 50; 
+                    const w = Math.min(180, child.length * 8 + 24);
+                    return {
+                        x: bx + dist2 * Math.cos(childAngle),
+                        y: by + dist2 * Math.sin(childAngle),
+                        w: w,
+                        h: 28,
+                        label: child,
+                        cIdx: cIdx
+                    };
+                });
+
+                // 2. Relax overlap positions using repulsion relaxation
+                for (let iter = 0; iter < 80; iter++) {
+                    for (let i = 0; i < childNodes.length; i++) {
+                        for (let j = i + 1; j < childNodes.length; j++) {
+                            const n1 = childNodes[i];
+                            const n2 = childNodes[j];
+                            const dx = n1.x - n2.x;
+                            const dy = n1.y - n2.y;
+                            const minX = (n1.w + n2.w) / 2 + 12; 
+                            const minY = 32; 
+                            
+                            if (Math.abs(dx) < minX && Math.abs(dy) < minY) {
+                                const overlapX = minX - Math.abs(dx);
+                                const overlapY = minY - Math.abs(dy);
+                                const pushX = dx === 0 ? (Math.random() - 0.5) * 2 : Math.sign(dx);
+                                const pushY = dy === 0 ? (Math.random() - 0.5) * 2 : Math.sign(dy);
+                                
+                                if (overlapX < overlapY) {
+                                    n1.x += pushX * overlapX * 0.4;
+                                    n2.x -= pushX * overlapX * 0.4;
+                                } else {
+                                    n1.y += pushY * overlapY * 0.4;
+                                    n2.y -= pushY * overlapY * 0.4;
+                                }
+                            }
+                        }
+                    }
+                    // Constrain distance to branch node to keep links neat
+                    for (let i = 0; i < childNodes.length; i++) {
+                        const n = childNodes[i];
+                        const dx = n.x - bx;
+                        const dy = n.y - by;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        if (dist < 100) {
+                            n.x += (dx / dist) * (100 - dist) * 0.5;
+                            n.y += (dy / dist) * (100 - dist) * 0.5;
+                        } else if (dist > 280) {
+                            n.x -= (dx / dist) * (dist - 280) * 0.5;
+                            n.y -= (dy / dist) * (dist - 280) * 0.5;
+                        }
+                    }
+                }
+
+                // 3. Render relaxed child nodes and connector lines
+                childNodes.forEach((node) => {
+                    const cx = node.x;
+                    const cy = node.y;
+
+                    // Draw line from branch to child
+                    const childLine = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                    const childCp1x = bx + (cx - bx) / 2;
+                    const childCp1y = by + (cy - by) / 2;
+                    childLine.setAttribute("d", `M ${bx} ${by} Q ${childCp1x} ${childCp1y}, ${cx} ${cy}`);
+                    childLine.setAttribute("class", "connector-line");
+                    childLine.setAttribute("stroke", colorConfig.stroke);
+                    childLine.setAttribute("stroke-opacity", "0.5");
+                    childLine.setAttribute("stroke-width", "1.5");
+                    linksGroup.appendChild(childLine);
+
+                    // Child Node Group
+                    const childG = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                    childG.setAttribute("transform", `translate(${cx}, ${cy})`);
+
+                    const childRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+                    childRect.setAttribute("x", -node.w / 2);
+                    childRect.setAttribute("y", -14);
+                    childRect.setAttribute("width", node.w);
+                    childRect.setAttribute("height", node.h);
+                    childRect.setAttribute("rx", 6);
+                    childRect.setAttribute("class", "node-child");
+                    childG.appendChild(childRect);
+
+                    // Label wrapping or clip
+                    const childText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                    childText.setAttribute("text-anchor", "middle");
+                    childText.setAttribute("y", 4);
+                    childText.setAttribute("fill", "#334155");
+                    childText.setAttribute("font-size", "11px");
+                    
+                    let displayLabel = node.label;
+                    if (displayLabel.length > 22) {
+                        displayLabel = displayLabel.slice(0, 20) + "...";
+                    }
+                    childText.textContent = displayLabel;
+                    
+                    // Add full tooltip
+                    const titleTag = document.createElementNS("http://www.w3.org/2000/svg", "title");
+                    titleTag.textContent = node.label;
+                    childG.appendChild(titleTag);
+
+                    childG.appendChild(childText);
+                    nodesGroup.appendChild(childG);
+                });
+            }
+
+            // Draw Branch Node
+            const branchG = document.createElementNS("http://www.w3.org/2000/svg", "g");
+            branchG.setAttribute("transform", `translate(${bx}, ${by})`);
+            branchG.setAttribute("class", "node-branch");
+            branchG.setAttribute("style", `--glow-color: ${colorConfig.glow}`);
+            branchG.addEventListener('click', (e) => {
+                e.stopPropagation(); // Avoid triggering panning
+                toggleBranch(idx);
+            });
+
+            const branchRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+            const branchTextWidth = Math.min(180, branch.label.length * 9 + 30);
+            branchRect.setAttribute("x", -branchTextWidth / 2);
+            branchRect.setAttribute("y", -18);
+            branchRect.setAttribute("width", branchTextWidth);
+            branchRect.setAttribute("height", 36);
+            branchRect.setAttribute("rx", 10);
+            branchRect.setAttribute("fill", colorConfig.fill);
+            branchRect.setAttribute("stroke", colorConfig.stroke);
+            branchRect.setAttribute("stroke-width", "1.5");
+            branchG.appendChild(branchRect);
+
+            // Collapsed indicator badge
+            if (branch.children && branch.children.length > 0) {
+                const indicator = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                indicator.setAttribute("cx", branchTextWidth / 2 - 2);
+                indicator.setAttribute("cy", -12);
+                indicator.setAttribute("r", 7);
+                indicator.setAttribute("fill", isCollapsed ? colorConfig.stroke : "#ffffff");
+                indicator.setAttribute("stroke", colorConfig.stroke);
+                indicator.setAttribute("stroke-width", "1");
+                branchG.appendChild(indicator);
+
+                const indText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                indText.setAttribute("x", branchTextWidth / 2 - 2);
+                indText.setAttribute("y", -9);
+                indText.setAttribute("text-anchor", "middle");
+                indText.setAttribute("fill", isCollapsed ? "#ffffff" : colorConfig.stroke);
+                indText.setAttribute("font-size", "9px");
+                indText.setAttribute("font-weight", "bold");
+                indText.textContent = isCollapsed ? "+" : "−";
+                branchG.appendChild(indText);
+            }
+
+            const branchText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            branchText.setAttribute("text-anchor", "middle");
+            branchText.setAttribute("y", 4);
+            branchText.setAttribute("fill", "#0f172a");
+            branchText.setAttribute("font-size", "12px");
+            branchText.setAttribute("font-weight", "500");
+            branchText.textContent = branch.label;
+            branchG.appendChild(branchText);
+            
+            // Branch full tooltip
+            const branchTitle = document.createElementNS("http://www.w3.org/2000/svg", "title");
+            branchTitle.textContent = `${branch.label} (${branch.children ? branch.children.length : 0} items)`;
+            branchG.appendChild(branchTitle);
+
+            nodesGroup.appendChild(branchG);
+        });
+    }
+
+    // Initialize Layout
+    renderMindMap();
+    updateTransform();
+
+    if (window.ResizeObserver) {
+        const wrap = document.getElementById('canvas-wrap');
+        new ResizeObserver(() => {
+            const svg = document.getElementById('canvas');
+            if (svg) svg.setAttribute('height', wrap.clientHeight);
+            setTimeout(() => window.reportHeight?.(), 50);
+        }).observe(wrap);
+    }
+</script>

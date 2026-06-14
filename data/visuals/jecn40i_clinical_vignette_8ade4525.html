@@ -1,0 +1,232 @@
+<html data-theme="clinical">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pediatric Bleeding Disorders</title>
+    <style>
+        :root {
+            /* clinical theme */
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --border: #e2e8f0;
+            --text: #0f172a;
+            --text-secondary: #64748b;
+            --accent: #2563eb;
+            --accent-soft: #dbeafe;
+            --accent-2: #0d9488;
+            --accent-2-soft: #ccfbf1;
+            --success: #16a34a;
+            --warning: #d97706;
+            --danger: #dc2626;
+        }
+
+        [data-theme="nightshift"] {
+            --bg: #0a0e17;
+            --surface: #131a26;
+            --border: rgba(255,255,255,0.08);
+            --text: #e2e8f0;
+            --text-secondary: #94a3b8;
+            --accent: #38bdf8;
+            --accent-soft: rgba(56,189,248,0.15);
+            --accent-2: #a78bfa;
+            --accent-2-soft: rgba(167,139,250,0.15);
+            --success: #4ade80;
+            --warning: #fbbf24;
+            --danger: #f87171;
+        }
+
+        [data-theme="botanica"] {
+            --bg: #f6f8f1;
+            --surface: #ffffff;
+            --border: #dde6d5;
+            --text: #2b3a26;
+            --text-secondary: #6b7d63;
+            --accent: #4d7c4a;
+            --accent-soft: #e3ecdf;
+            --accent-2: #c9852f;
+            --accent-2-soft: #f6e6cf;
+            --success: #4d7c4a;
+            --warning: #c9852f;
+            --danger: #b3473a;
+        }
+
+        [data-theme="bloom"] {
+            --bg: #fff5f7;
+            --surface: #ffffff;
+            --border: #fbd5e0;
+            --text: #4a2540;
+            --text-secondary: #9c7a8f;
+            --accent: #ec4899;
+            --accent-soft: #fce7f3;
+            --accent-2: #14b8a6;
+            --accent-2-soft: #ccfbf1;
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --danger: #e11d48;
+        }
+
+        [data-theme="solstice"] {
+            --bg: #fff8f0;
+            --surface: #ffffff;
+            --border: #fde4cf;
+            --text: #3a2418;
+            --text-secondary: #8a6a55;
+            --accent: #f97316;
+            --accent-soft: #ffedd5;
+            --accent-2: #0ea5e9;
+            --accent-2-soft: #e0f2fe;
+            --success: #65a30d;
+            --warning: #eab308;
+            --danger: #dc2626;
+        }
+
+        [data-theme="arcane"] {
+            --bg: #0d0a1a;
+            --surface: #1a1430;
+            --border: rgba(167, 139, 250, 0.15);
+            --text: #f1eaff;
+            --text-secondary: #a89bc4;
+            --accent: #c084fc;
+            --accent-soft: rgba(192, 132, 252, 0.15);
+            --accent-2: #2dd4bf;
+            --accent-2-soft: rgba(45, 212, 191, 0.15);
+            --success: #34d399;
+            --warning: #fbbf24;
+            --danger: #fb7185;
+        }
+
+        /* Base styles */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+            line-height: 1.6;
+            color: var(--text);
+            background-color: var(--bg);
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        .container {
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            padding: 30px;
+            max-width: 900px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            color: var(--text);
+            margin-bottom: 0.8em;
+            line-height: 1.3;
+        }
+
+        h1 {
+            font-size: 2.2em;
+            text-align: center;
+            color: var(--text); /* Main title uses primary text color */
+        }
+
+        h2 {
+            font-size: 1.8em;
+            border-bottom: 2px solid var(--accent-soft);
+            padding-bottom: 0.5em;
+            margin-top: 1.5em;
+            color: var(--accent); /* Section titles use accent */
+        }
+
+        h3 {
+            font-size: 1.4em;
+            color: var(--accent-2); /* Disease titles use accent-2 */
+            margin-top: 1em;
+        }
+
+        h4 {
+            font-size: 1.1em;
+            color: var(--text);
+            margin-top: 1em;
+            margin-bottom: 0.5em;
+        }
+
+        p {
+            margin-bottom: 1em;
+            color: var(--text-secondary);
+        }
+
+        ul {
+            list-style-type: disc;
+            margin-left: 20px;
+            margin-bottom: 1em;
+            color: var(--text-secondary);
+        }
+
+        li {
+            margin-bottom: 0.5em;
+        }
+
+        strong {
+            color: var(--text);
+        }
+
+        em {
+            font-style: italic;
+        }
+
+        hr {
+            border: none;
+            border-top: 1px solid var(--border);
+            margin: 2em 0;
+        }
+
+        /* Callout boxes */
+        .callout {
+            padding: 15px 20px;
+            border-radius: 6px;
+            margin: 1.5em 0;
+            font-size: 0.95em;
+            line-height: 1.5;
+            color: var(--text);
+            border: 1px solid transparent;
+        }
+
+        .callout strong {
+            color: inherit;
+        }
+
+        .callout.important {
+            background-color: var(--danger);
+            color: white; /* Override text color for dark background */
+        }
+        .callout.important strong {
+            color: white;
+        }
+
+        .callout.note {
+            background-color: var(--accent-soft);
+            border-color: var(--accent);
+            color: var(--text);
+        }
+
+        .callout.tip {
+            background-color: var(--success);
+            color: white; /* Override text color for dark background */
+        }
+        .callout.tip strong {
+            color: white;
+        }
+
+        /* Accordion (details/summary) styling */
+        details {
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            border-

@@ -1,0 +1,197 @@
+<!-- HEAD -->
+<style>
+    .algorithm-card {
+        background: linear-gradient(135deg, rgba(20, 20, 25, 0.8), rgba(28, 25, 38, 0.8));
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-top: 3.5px solid var(--accent, #3b82f6);
+        border-radius: 1.5rem;
+    }
+    .option-btn {
+        background-color: rgba(255, 255, 255, 0.04);
+        border: 1.5px solid rgba(255, 255, 255, 0.1);
+        color: #ffffff;
+        border-radius: 0.75rem;
+        padding: 10px 16px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-align: left;
+    }
+    .option-btn:hover {
+        background-color: rgba(255, 255, 255, 0.08);
+        border-color: var(--accent, #3b82f6);
+    }
+    .option-btn.selected {
+        background-color: var(--accent-bg, rgba(59, 130, 246, 0.1));
+        border-color: var(--accent, #3b82f6);
+        color: var(--accent-text, #60a5fa);
+    }
+</style>
+
+<!-- BODY -->
+<div class="w-full max-w-xl flex flex-col gap-4 animate-fade-in py-2">
+    <!-- Breadcrumbs / Progress -->
+    <div class="w-full flex justify-between items-center text-xs text-zinc-500 px-1">
+        <span>Decision Pathway Tracker</span>
+        <span id="breadcrumb-trail">Step 1</span>
+    </div>
+
+    <!-- Active Node Card -->
+    <div class="algorithm-card p-6 shadow-2xl flex flex-col gap-5">
+        <div>
+            <span id="node-tag" class="px-2 py-0.5 rounded text-[9px] font-bold tracking-widest uppercase bg-blue-500/10 text-blue-400 border border-blue-500/20">Assess / Action</span>
+            <h3 id="node-question" class="text-sm md:text-base font-bold text-white mt-2 leading-relaxed">
+                Loading clinical scenario...
+            </h3>
+        </div>
+
+        <!-- Choice options grid -->
+        <div id="options-grid" class="flex flex-col gap-2.5">
+            <!-- Buttons will render here -->
+        </div>
+
+        <!-- Feedback details -->
+        <div id="feedback-box" class="hidden glass-panel p-4 rounded-xl bg-zinc-950/20 border border-zinc-800/40 text-xs text-zinc-300 leading-relaxed">
+            <!-- Feedback explanation text goes here -->
+        </div>
+
+        <!-- Navigation triggers -->
+        <div class="flex justify-between items-center border-t border-zinc-800/40 pt-4">
+            <button onclick="resetAlgorithm()" class="glass-panel px-4 py-2 rounded-xl text-zinc-400 hover:text-white transition text-xs bg-zinc-900/30">
+                Restart Algorithm
+            </button>
+            
+            <button id="next-btn" onclick="goToNextNode()" class="hidden px-5 py-2 rounded-xl text-white font-bold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 transition text-xs shadow-lg shadow-blue-500/10 cursor-pointer">
+                Continue Pathway →
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- SCRIPT -->
+<script>
+    document.getElementById('template-name-label').innerText = 'Clinical Decision Algorithm';
+
+    let activeNodeId = null;
+    let nodesMap = new Map();
+    let selectedOption = null;
+    let pathHistory = [];
+
+    function renderAlgorithm() {
+        const title = VISUAL_DATA.title || "Decision Tree";
+        document.getElementById('template-name-label').innerText = title;
+
+        const nodes = VISUAL_DATA.nodes || [];
+        nodesMap.clear();
+        nodes.forEach(node => nodesMap.set(node.id, node));
+
+        activeNodeId = VISUAL_DATA.start_node_id || (nodes[0] ? nodes[0].id : 1);
+        pathHistory = [activeNodeId];
+        
+        loadNode();
+    }
+
+    function loadNode() {
+        const node = nodesMap.get(activeNodeId);
+        if (!node) return;
+
+        // Reset state
+        selectedOption = null;
+        document.getElementById('feedback-box').classList.add('hidden');
+        document.getElementById('next-btn').classList.add('hidden');
+
+        // Render question
+        document.getElementById('node-question').innerText = node.question_or_action;
+        
+        // Node Type Badge
+        const badge = document.getElementById('node-tag');
+        if (node.is_terminal) {
+            badge.innerText = "ICU / OUTCOME";
+            badge.className = "px-2 py-0.5 rounded text-[9px] font-bold tracking-widest uppercase bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
+        } else {
+            badge.innerText = node.options && node.options.length > 0 ? "DECISION NODE" : "ASSESS / ACTION";
+            badge.className = "px-2 py-0.5 rounded text-[9px] font-bold tracking-widest uppercase bg-blue-500/10 text-blue-400 border border-blue-500/20";
+        }
+
+        // Render options
+        const grid = document.getElementById('options-grid');
+        grid.innerHTML = '';
+
+        if (node.options && node.options.length > 0) {
+            node.options.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn';
+                btn.innerText = opt;
+                btn.addEventListener('click', () => selectOption(opt));
+                grid.appendChild(btn);
+            });
+        } else if (node.is_terminal) {
+            grid.innerHTML = `
+                <div class="text-center py-6 text-emerald-400 text-xs font-semibold">
+                    🎉 End of algorithm pathway. Appropriate outcome achieved.
+                </div>
+            `;
+        } else {
+            // No options but not terminal: simple continuation node
+            document.getElementById('next-btn').classList.remove('hidden');
+            document.getElementById('next-btn').innerText = "Continue Pathway →";
+        }
+
+        // Update breadcrumbs
+        document.getElementById('breadcrumb-trail').innerText = pathHistory.join(" → ");
+        if (window.renderMath) window.renderMath();
+    }
+
+    function selectOption(option) {
+        selectedOption = option;
+
+        const btns = document.getElementsByClassName('option-btn');
+        for (let i = 0; i < btns.length; i++) {
+            btns[i].classList.remove('selected');
+            if (btns[i].innerText === option) {
+                btns[i].classList.add('selected');
+            }
+        }
+
+        const node = nodesMap.get(activeNodeId);
+        if (!node) return;
+
+        // Show feedback explanation
+        const feedbackBox = document.getElementById('feedback-box');
+        const feedbackVal = (node.feedback && node.feedback[option]) || "Deduction selected.";
+        feedbackBox.innerHTML = `<strong>Deduction:</strong> ${feedbackVal}`;
+        feedbackBox.classList.remove('hidden');
+
+        // Show continue button if there is a next node
+        const nextId = node.next_ids && node.next_ids[option];
+        if (nextId && nodesMap.has(nextId)) {
+            document.getElementById('next-btn').classList.remove('hidden');
+        }
+    }
+
+    function goToNextNode() {
+        const node = nodesMap.get(activeNodeId);
+        if (!node) return;
+
+        let nextId = null;
+        if (selectedOption) {
+            nextId = node.next_ids && node.next_ids[selectedOption];
+        } else {
+            // Continuation node fallback
+            nextId = node.next_ids ? Object.values(node.next_ids)[0] : null;
+        }
+
+        if (nextId && nodesMap.has(nextId)) {
+            activeNodeId = nextId;
+            pathHistory.push(activeNodeId);
+            loadNode();
+        }
+    }
+
+    function resetAlgorithm() {
+        renderAlgorithm();
+    }
+
+    renderAlgorithm();
+</script>

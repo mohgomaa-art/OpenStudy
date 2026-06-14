@@ -1,0 +1,348 @@
+<!-- HEAD -->
+<style>
+    .mindmap-svg {
+        background-color: transparent;
+        cursor: grab;
+    }
+    .mindmap-svg:active {
+        cursor: grabbing;
+    }
+    .node-center {
+        fill: url(#centerGrad);
+        stroke: var(--accent, #a78bfa);
+        stroke-width: 3px;
+        transition: filter 0.3s;
+    }
+    .node-center:hover {
+        filter: drop-shadow(0 0 16px var(--accent-glow, rgba(167, 139, 250, 0.6)));
+    }
+    .node-branch {
+        cursor: pointer;
+        transition: filter 0.3s, transform 0.2s;
+    }
+    .node-branch:hover {
+        filter: drop-shadow(0 0 12px var(--glow-color));
+        transform: scale(1.03);
+    }
+    .node-child {
+        fill: #ffffff;
+        stroke: var(--accent-border, #cbd5e1);
+        stroke-width: 1px;
+        transition: filter 0.2s, stroke 0.2s;
+    }
+    .node-child:hover {
+        stroke: var(--accent, #94a3b8);
+        filter: drop-shadow(0 0 8px var(--glow-color));
+    }
+    .connector-line {
+        fill: none;
+        stroke-dasharray: 1000;
+        stroke-dashoffset: 0;
+        animation: drawLine 1.5s ease-out forwards;
+    }
+    @keyframes drawLine {
+        from { stroke-dashoffset: 1000; }
+        to { stroke-dashoffset: 0; }
+    }
+</style>
+
+<!-- BODY -->
+<div id="canvas-wrap" class="w-full glass-panel rounded-2xl overflow-hidden relative flex flex-col animate-fade-in" style="height:600px;resize:vertical;min-height:350px;max-height:1800px">
+    <svg id="canvas" class="w-full h-full mindmap-svg" viewBox="0 0 900 600">
+        <defs>
+            <radialGradient id="centerGrad" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stop-color="var(--accent-soft, #f3e8ff)" />
+                <stop offset="100%" stop-color="var(--accent-border, #e9d5ff)" />
+            </radialGradient>
+            <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+                <feDropShadow dx="0" dy="5" stdDeviation="7" flood-color="#000000" flood-opacity="0.18" />
+            </filter>
+        </defs>
+        
+        <g id="viewport">
+            <g id="links-group"></g>
+            <g id="nodes-group"></g>
+        </g>
+    </svg>
+    
+    <!-- Controls Overlay -->
+    <div class="absolute bottom-4 right-4 flex gap-2">
+        <button onclick="resetZoom()" class="glass-panel w-9 h-9 flex items-center justify-center rounded-lg text-zinc-600 hover:text-black hover:border-zinc-300 bg-white/60" title="Recenter">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+        </button>
+        <button onclick="zoom(1.2)" class="glass-panel w-9 h-9 flex items-center justify-center rounded-lg text-zinc-600 hover:text-black hover:border-zinc-300 bg-white/60" title="Zoom In">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+        </button>
+        <button onclick="zoom(0.8)" class="glass-panel w-9 h-9 flex items-center justify-center rounded-lg text-zinc-600 hover:text-black hover:border-zinc-300 bg-white/60" title="Zoom Out">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path></svg>
+        </button>
+    </div>
+    
+    <div class="absolute top-4 left-4 text-xs text-zinc-500 pointer-events-none">
+        Bubble Cluster Layout • Drag to Pan • Scroll to Zoom • Click circles to collapse
+    </div>
+</div>
+
+<!-- SCRIPT -->
+<script>
+    document.getElementById('template-name-label').innerText = 'Bubble Cluster Mind Map';
+
+    const COLOR_MAP = {
+        purple: { fill: "var(--accent-soft, #ede9fe)", stroke: "var(--accent, #8b5cf6)", glow: "var(--accent-glow, rgba(139, 92, 246, 0.4))" },
+        teal: { fill: "#ccfbf1", stroke: "#14b8a6", glow: "rgba(20, 184, 166, 0.4)" },
+        coral: { fill: "#ffedd5", stroke: "#f97316", glow: "rgba(249, 115, 22, 0.4)" },
+        blue: { fill: "#dbeafe", stroke: "#3b82f6", glow: "rgba(59, 130, 246, 0.4)" },
+        amber: { fill: "#fef3c7", stroke: "#f59e0b", glow: "rgba(245, 158, 11, 0.4)" }
+    };
+
+    let zoomLevel = 1.0;
+    let panX = 0;
+    let panY = 0;
+    let isDragging = false;
+    let startX = 0;
+    let startY = 0;
+
+    const viewport = document.getElementById('viewport');
+    const canvas = document.getElementById('canvas');
+
+    canvas.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        startX = e.clientX - panX;
+        startY = e.clientY - panY;
+    });
+
+    window.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        panX = e.clientX - startX;
+        panY = e.clientY - startY;
+        updateTransform();
+    });
+
+    window.addEventListener('mouseup', () => {
+        isDragging = false;
+    });
+
+    canvas.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
+        zoom(zoomFactor);
+    });
+
+    function zoom(factor) {
+        zoomLevel = Math.max(0.4, Math.min(3.0, zoomLevel * factor));
+        updateTransform();
+    }
+
+    function resetZoom() {
+        zoomLevel = 1.0;
+        panX = 0;
+        panY = 0;
+        updateTransform();
+    }
+
+    function updateTransform() {
+        viewport.setAttribute('transform', `translate(${450 + panX}, ${300 + panY}) scale(${zoomLevel}) translate(-450, -300)`);
+    }
+
+    const collapsedBranches = new Set();
+
+    function toggleBranch(branchIndex) {
+        if (collapsedBranches.has(branchIndex)) {
+            collapsedBranches.delete(branchIndex);
+        } else {
+            collapsedBranches.add(branchIndex);
+        }
+        renderMindMap();
+    }
+
+    function renderMindMap() {
+        const linksGroup = document.getElementById('links-group');
+        const nodesGroup = document.getElementById('nodes-group');
+        
+        linksGroup.innerHTML = '';
+        nodesGroup.innerHTML = '';
+        
+        const centerCol = 450;
+        const centerRow = 300;
+        const title = VISUAL_DATA.center || VISUAL_DATA.title || "Topic";
+        const branches = VISUAL_DATA.branches || [];
+
+        // 1. Draw Center Bubble
+        const centerG = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        centerG.setAttribute("transform", `translate(${centerCol}, ${centerRow})`);
+        
+        const centerCircle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        centerCircle.setAttribute("r", 68);
+        centerCircle.setAttribute("class", "node-center shadow-lg");
+        centerCircle.setAttribute("filter", "url(#shadow)");
+        centerG.appendChild(centerCircle);
+
+        const centerText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        centerText.setAttribute("text-anchor", "middle");
+        centerText.setAttribute("y", 5);
+        centerText.setAttribute("fill", "#1e1b4b");
+        centerText.setAttribute("font-weight", "bold");
+        centerText.setAttribute("font-size", "14px");
+        
+        // Wrap center text if too long
+        let displayTitle = title;
+        if (displayTitle.length > 16) {
+            displayTitle = displayTitle.slice(0, 14) + "...";
+        }
+        centerText.textContent = displayTitle;
+        centerG.appendChild(centerText);
+        
+        const centerTitle = document.createElementNS("http://www.w3.org/2000/svg", "title");
+        centerTitle.textContent = title;
+        centerG.appendChild(centerTitle);
+        nodesGroup.appendChild(centerG);
+
+        // 2. Draw Branch Bubbles and Child Orbits
+        const branchCount = branches.length;
+        if (branchCount === 0) return;
+
+        branches.forEach((branch, idx) => {
+            const angle = (idx * 2 * Math.PI) / branchCount - (Math.PI / 2);
+            const dist1 = 200; // Radius to branch center
+            const bx = centerCol + dist1 * Math.cos(angle);
+            const by = centerRow + dist1 * Math.sin(angle);
+            
+            const colorConfig = COLOR_MAP[branch.color] || COLOR_MAP.purple;
+            const isCollapsed = collapsedBranches.has(idx);
+
+            // Draw link line
+            const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            line.setAttribute("x1", centerCol);
+            line.setAttribute("y1", centerRow);
+            line.setAttribute("x2", bx);
+            line.setAttribute("y2", by);
+            line.setAttribute("class", "connector-line");
+            line.setAttribute("stroke", colorConfig.stroke);
+            line.setAttribute("stroke-width", "3");
+            linksGroup.appendChild(line);
+
+            // Draw child orbit nodes
+            if (!isCollapsed && branch.children && branch.children.length > 0) {
+                const childCount = branch.children.length;
+                branch.children.forEach((child, cIdx) => {
+                    // Orbit layout around branch bubble
+                    const childAngle = angle + ((cIdx + 1) * 2 * Math.PI) / (childCount + 1) - Math.PI;
+                    const dist2 = 90;
+                    const cx = bx + dist2 * Math.cos(childAngle);
+                    const cy = by + dist2 * Math.sin(childAngle);
+
+                    // Child connector
+                    const childLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                    childLine.setAttribute("x1", bx);
+                    childLine.setAttribute("y1", by);
+                    childLine.setAttribute("x2", cx);
+                    childLine.setAttribute("y2", cy);
+                    childLine.setAttribute("class", "connector-line");
+                    childLine.setAttribute("stroke", colorConfig.stroke);
+                    childLine.setAttribute("stroke-opacity", "0.6");
+                    childLine.setAttribute("stroke-width", "1.5");
+                    linksGroup.appendChild(childLine);
+
+                    // Child bubble
+                    const childG = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                    childG.setAttribute("transform", `translate(${cx}, ${cy})`);
+
+                    const childCircle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                    childCircle.setAttribute("r", 32);
+                    childCircle.setAttribute("class", "node-child shadow-sm");
+                    childCircle.setAttribute("style", `--glow-color: ${colorConfig.glow}`);
+                    childG.appendChild(childCircle);
+
+                    const childText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                    childText.setAttribute("text-anchor", "middle");
+                    childText.setAttribute("y", 4);
+                    childText.setAttribute("fill", "#334155");
+                    childText.setAttribute("font-size", "9px");
+                    childText.setAttribute("font-weight", "500");
+                    
+                    let displayLabel = child;
+                    if (displayLabel.length > 8) {
+                        displayLabel = displayLabel.slice(0, 6) + "..";
+                    }
+                    childText.textContent = displayLabel;
+                    
+                    const titleTag = document.createElementNS("http://www.w3.org/2000/svg", "title");
+                    titleTag.textContent = child;
+                    childG.appendChild(titleTag);
+                    childG.appendChild(childText);
+
+                    nodesGroup.appendChild(childG);
+                });
+            }
+
+            // Draw Branch Circle
+            const branchG = document.createElementNS("http://www.w3.org/2000/svg", "g");
+            branchG.setAttribute("transform", `translate(${bx}, ${by})`);
+            branchG.setAttribute("class", "node-branch");
+            branchG.setAttribute("style", `--glow-color: ${colorConfig.glow}`);
+            branchG.addEventListener('click', (e) => {
+                e.stopPropagation();
+                toggleBranch(idx);
+            });
+
+            const branchCircle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            branchCircle.setAttribute("r", 52);
+            branchCircle.setAttribute("fill", colorConfig.fill);
+            branchCircle.setAttribute("stroke", colorConfig.stroke);
+            branchCircle.setAttribute("stroke-width", "2");
+            branchCircle.setAttribute("filter", "url(#shadow)");
+            branchG.appendChild(branchCircle);
+
+            const branchText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            branchText.setAttribute("text-anchor", "middle");
+            branchText.setAttribute("y", 4);
+            branchText.setAttribute("fill", "#0f172a");
+            branchText.setAttribute("font-size", "11px");
+            branchText.setAttribute("font-weight", "600");
+            
+            let displayBranch = branch.label;
+            if (displayBranch.length > 12) {
+                displayBranch = displayBranch.slice(0, 10) + "...";
+            }
+            branchText.textContent = displayBranch;
+            branchG.appendChild(branchText);
+
+            if (branch.children && branch.children.length > 0) {
+                const countBadge = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                countBadge.setAttribute("cx", 0);
+                countBadge.setAttribute("cy", 22);
+                countBadge.setAttribute("r", 9);
+                countBadge.setAttribute("fill", colorConfig.stroke);
+                branchG.appendChild(countBadge);
+
+                const countText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                countText.setAttribute("x", 0);
+                countText.setAttribute("y", 25);
+                countText.setAttribute("text-anchor", "middle");
+                countText.setAttribute("fill", "#ffffff");
+                countText.setAttribute("font-size", "9px");
+                countText.setAttribute("font-weight", "bold");
+                countText.textContent = isCollapsed ? `+${branch.children.length}` : branch.children.length;
+                branchG.appendChild(countText);
+            }
+
+            const branchTitle = document.createElementNS("http://www.w3.org/2000/svg", "title");
+            branchTitle.textContent = `${branch.label} (${branch.children ? branch.children.length : 0} items)`;
+            branchG.appendChild(branchTitle);
+
+            nodesGroup.appendChild(branchG);
+        });
+    }
+
+    renderMindMap();
+    updateTransform();
+
+    if (window.ResizeObserver) {
+        const wrap = document.getElementById('canvas-wrap');
+        new ResizeObserver(() => {
+            const svg = document.getElementById('canvas');
+            if (svg) svg.setAttribute('height', wrap.clientHeight);
+            setTimeout(() => window.reportHeight?.(), 50);
+        }).observe(wrap);
+    }
+</script>

@@ -1,0 +1,182 @@
+<!-- HEAD -->
+<style>
+    .flow-card {
+        transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s;
+        will-change: transform;
+    }
+    .flow-card:hover {
+        transform: translate3d(-4px, 0, 0);
+        box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.7);
+    }
+    .stage-badge {
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+    }
+    .connector-line {
+        background: linear-gradient(180deg, var(--start-color) 0%, var(--end-color) 100%);
+        box-shadow: 0 0 8px var(--glow-color);
+        transition: height 0.5s ease;
+    }
+</style>
+
+<!-- BODY -->
+<div class="w-full max-w-4xl flex flex-col gap-6 animate-fade-in px-4">
+    <!-- Intro Block -->
+    <div class="w-full glass-panel p-6 rounded-2xl flex flex-col gap-2 bg-gradient-to-br from-zinc-950/40 to-purple-950/10">
+        <div class="flex justify-between items-center">
+            <span class="text-xs text-purple-400 font-bold uppercase tracking-wider">Pathophysiology Cascade</span>
+            <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-purple-500/10 text-purple-300 border border-purple-500/20" id="disease-name-badge">Disease</span>
+        </div>
+        <p class="text-zinc-400 text-sm leading-relaxed">
+            Follow the pathological progression from the initial trigger down to the final clinical manifestations. Click on any step to highlight its cascade.
+        </p>
+    </div>
+
+    <!-- Cascade Flow Container -->
+    <div class="relative flex flex-col items-stretch pl-8 md:pl-16 pr-2 py-4" id="cascade-container">
+        <!-- Rendered Steps Go Here -->
+    </div>
+</div>
+
+<!-- SCRIPT -->
+<script>
+    document.getElementById('template-name-label').innerText = 'Pathophysiology Cascade Flow';
+
+    const STAGE_CONFIGS = {
+        Trigger: {
+            title: "Etiology & Trigger",
+            border: "border-red-500/30",
+            bg: "bg-red-500/5",
+            badgeText: "text-red-400",
+            badgeBg: "bg-red-500/10",
+            glow: "rgba(239, 68, 68, 0.4)",
+            lineColor: "#ef4444"
+        },
+        Mechanism: {
+            title: "Molecular & Cellular Mechanism",
+            border: "border-amber-500/30",
+            bg: "bg-amber-500/5",
+            badgeText: "text-amber-400",
+            badgeBg: "bg-amber-500/10",
+            glow: "rgba(245, 158, 11, 0.4)",
+            lineColor: "#f59e0b"
+        },
+        Pathology: {
+            title: "Pathological & Tissue Changes",
+            border: "border-blue-500/30",
+            bg: "bg-blue-500/5",
+            badgeText: "text-blue-400",
+            badgeBg: "bg-blue-500/10",
+            glow: "rgba(59, 130, 246, 0.4)",
+            lineColor: "#3b82f6"
+        },
+        Clinical: {
+            title: "Clinical Manifestations",
+            border: "border-emerald-500/30",
+            bg: "bg-emerald-500/5",
+            badgeText: "text-emerald-400",
+            badgeBg: "bg-emerald-500/10",
+            glow: "rgba(16, 185, 129, 0.4)",
+            lineColor: "#10b981"
+        }
+    };
+
+    let activeStepIndex = null;
+
+    function renderCascade() {
+        const container = document.getElementById('cascade-container');
+        container.innerHTML = '';
+
+        const disease = VISUAL_DATA.disease || "Specified Condition";
+        document.getElementById('disease-name-badge').innerText = disease;
+
+        const steps = VISUAL_DATA.flow || [];
+        if (steps.length === 0) return;
+
+        steps.forEach((step, idx) => {
+            const config = STAGE_CONFIGS[step.stage] || STAGE_CONFIGS.Trigger;
+            
+            // Step Row Wrapper
+            const row = document.createElement('div');
+            row.className = "relative flex items-start gap-6 mb-8 last:mb-0";
+            
+            // vertical timeline connector line
+            if (idx < steps.length - 1) {
+                const nextStep = steps[idx + 1];
+                const nextConfig = STAGE_CONFIGS[nextStep.stage] || STAGE_CONFIGS.Trigger;
+                
+                const line = document.createElement('div');
+                line.className = "absolute left-[-24px] top-6 w-0.5 h-[calc(100%+32px)] z-0";
+                line.style.setProperty('--start-color', config.lineColor);
+                line.style.setProperty('--end-color', nextConfig.lineColor);
+                line.style.setProperty('--glow-color', config.glow);
+                line.className += " connector-line";
+                row.appendChild(line);
+            }
+
+            // Timeline Node Dot
+            const dot = document.createElement('div');
+            dot.className = `absolute left-[-28px] top-2.5 w-2.5 h-2.5 rounded-full z-10 border border-zinc-950 transition-all duration-300`;
+            dot.style.backgroundColor = config.lineColor;
+            if (activeStepIndex === idx) {
+                dot.className += " scale-150 ring-4";
+                dot.style.boxShadow = `0 0 10px 2px ${config.lineColor}`;
+            }
+            row.appendChild(dot);
+
+            // Cascade Card
+            const card = document.createElement('div');
+            card.onclick = () => {
+                activeStepIndex = (activeStepIndex === idx) ? null : idx;
+                renderCascade();
+            };
+            
+            let isActive = activeStepIndex === idx;
+            let activeBorder = isActive ? `border-white/30 ring-1 ring-white/10` : config.border;
+            let activeShadow = isActive ? `shadow-[0_8px_32px_0_rgba(255,255,255,0.03)]` : '';
+
+            card.className = `w-full glass-panel ${activeBorder} ${config.bg} p-6 rounded-xl cursor-pointer flow-card relative overflow-hidden ${activeShadow}`;
+            
+            // Mediators HTML
+            let mediatorsHTML = '';
+            if (step.key_mediators && step.key_mediators.length > 0) {
+                mediatorsHTML = `
+                    <div class="mt-4 flex flex-wrap gap-2 items-center">
+                        <span class="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mr-1">Key Mediators:</span>
+                        ${step.key_mediators.map(med => `
+                            <span class="px-2 py-0.5 rounded text-[10px] font-medium bg-zinc-900 border border-white/5 text-zinc-300 hover:border-purple-500/20 hover:text-white transition-colors">
+                                ${med}
+                            </span>
+                        `).join('')}
+                    </div>
+                `;
+            }
+
+            card.innerHTML = `
+                <div class="flex flex-col gap-2">
+                    <div class="flex justify-between items-center">
+                        <div class="flex items-center gap-2">
+                            <span class="stage-badge ${config.badgeText} ${config.badgeBg} px-2 py-0.5 rounded">
+                                Stage ${idx + 1}: ${step.stage}
+                            </span>
+                        </div>
+                        <span class="text-xs text-zinc-500 font-medium">${config.title}</span>
+                    </div>
+                    
+                    <h3 class="text-lg font-bold text-white mt-1 leading-snug">${step.title}</h3>
+                    <p class="text-zinc-400 text-sm mt-1.5 leading-relaxed">${step.description}</p>
+                    
+                    ${mediatorsHTML}
+                </div>
+            `;
+            
+            row.appendChild(card);
+            container.appendChild(row);
+        });
+    }
+
+    // Initialize
+    renderCascade();
+</script>

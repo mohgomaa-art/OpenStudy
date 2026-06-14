@@ -1,0 +1,407 @@
+MIND_MAP_HTML_TEMPLATE = """<!DOCTYPE html>
+<html data-theme="{theme}">
+<head>
+<meta charset="utf-8">
+<title>Mind Map</title>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<style>
+:root {{
+  --bg: #f8fafc; --surface: #ffffff; --border: #e2e8f0;
+  --text: #0f172a; --text-secondary: #64748b;
+  --accent: #2563eb; --accent-soft: #dbeafe;
+  --accent-2: #0d9488; --accent-2-soft: #ccfbf1;
+  --success: #16a34a; --warning: #d97706; --danger: #dc2626;
+  --node-stroke: #ffffff; --link-color: #94a3b8;
+  --toolbar-bg: rgba(255,255,255,0.85); --btn-hover: rgba(0,0,0,0.06);
+  --shadow: rgba(0,0,0,0.10); --glow: rgba(37,99,235,0.18);
+}}
+[data-theme="clinical"] {{
+  --bg: #f8fafc; --surface: #ffffff; --border: #e2e8f0;
+  --text: #0f172a; --text-secondary: #64748b;
+  --accent: #2563eb; --accent-soft: #dbeafe;
+  --accent-2: #0d9488; --accent-2-soft: #ccfbf1;
+  --node-stroke: #ffffff; --link-color: #94a3b8;
+  --toolbar-bg: rgba(255,255,255,0.85); --btn-hover: rgba(0,0,0,0.06);
+  --shadow: rgba(0,0,0,0.10); --glow: rgba(37,99,235,0.18);
+}}
+[data-theme="nightshift"] {{
+  --bg: #0a0e17; --surface: #131a26; --border: rgba(255,255,255,0.08);
+  --text: #e2e8f0; --text-secondary: #94a3b8;
+  --accent: #38bdf8; --accent-soft: rgba(56,189,248,0.15);
+  --accent-2: #a78bfa; --accent-2-soft: rgba(167,139,250,0.15);
+  --node-stroke: #0a0e17; --link-color: rgba(148,163,184,0.35);
+  --toolbar-bg: rgba(13,18,30,0.90); --btn-hover: rgba(255,255,255,0.07);
+  --shadow: rgba(0,0,0,0.45); --glow: rgba(56,189,248,0.22);
+}}
+[data-theme="botanica"] {{
+  --bg: #f6f8f1; --surface: #ffffff; --border: #dde6d5;
+  --text: #2b3a26; --text-secondary: #6b7d63;
+  --accent: #4d7c4a; --accent-soft: #e3ecdf;
+  --accent-2: #c9852f; --accent-2-soft: #f6e6cf;
+  --node-stroke: #ffffff; --link-color: #a3b89a;
+  --toolbar-bg: rgba(246,248,241,0.88); --btn-hover: rgba(0,0,0,0.05);
+  --shadow: rgba(43,58,38,0.10); --glow: rgba(77,124,74,0.18);
+}}
+[data-theme="bloom"] {{
+  --bg: #fff5f7; --surface: #ffffff; --border: #fbd5e0;
+  --text: #4a2540; --text-secondary: #9c7a8f;
+  --accent: #ec4899; --accent-soft: #fce7f3;
+  --accent-2: #14b8a6; --accent-2-soft: #ccfbf1;
+  --node-stroke: #ffffff; --link-color: #f0a0bf;
+  --toolbar-bg: rgba(255,245,247,0.88); --btn-hover: rgba(0,0,0,0.05);
+  --shadow: rgba(74,37,64,0.10); --glow: rgba(236,72,153,0.18);
+}}
+[data-theme="solstice"] {{
+  --bg: #fff8f0; --surface: #ffffff; --border: #fde4cf;
+  --text: #3a2418; --text-secondary: #8a6a55;
+  --accent: #f97316; --accent-soft: #ffedd5;
+  --accent-2: #0ea5e9; --accent-2-soft: #e0f2fe;
+  --node-stroke: #ffffff; --link-color: #f4c09a;
+  --toolbar-bg: rgba(255,248,240,0.88); --btn-hover: rgba(0,0,0,0.05);
+  --shadow: rgba(58,36,24,0.10); --glow: rgba(249,115,22,0.18);
+}}
+[data-theme="arcane"] {{
+  --bg: #0d0a1a; --surface: #1a1430; --border: rgba(167,139,250,0.15);
+  --text: #f1eaff; --text-secondary: #a89bc4;
+  --accent: #c084fc; --accent-soft: rgba(192,132,252,0.15);
+  --accent-2: #2dd4bf; --accent-2-soft: rgba(45,212,191,0.15);
+  --node-stroke: #0d0a1a; --link-color: rgba(167,139,250,0.30);
+  --toolbar-bg: rgba(26,20,48,0.92); --btn-hover: rgba(255,255,255,0.07);
+  --shadow: rgba(0,0,0,0.55); --glow: rgba(192,132,252,0.28);
+}}
+
+*, *::before, *::after {{ box-sizing: border-box; }}
+html, body {{ margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; }}
+body {{
+  background: var(--bg);
+  font-family: -apple-system, 'Inter', 'Segoe UI', sans-serif;
+  color: var(--text);
+  transition: background 0.4s, color 0.4s;
+}}
+
+#canvas {{ width: 100vw; height: 100vh; display: block; cursor: grab; }}
+#canvas:active {{ cursor: grabbing; }}
+
+/* Links */
+.link {{
+  fill: none;
+  stroke: var(--link-color);
+  stroke-width: 1.8px;
+  transition: stroke 0.3s, stroke-width 0.2s;
+}}
+.link:hover {{ stroke-width: 3px; }}
+
+/* Node groups */
+.node {{ cursor: pointer; }}
+
+/* Root node */
+.node-root circle {{
+  fill: var(--accent);
+  stroke: var(--node-stroke);
+  stroke-width: 3px;
+  filter: drop-shadow(0 4px 16px var(--glow));
+  transition: filter 0.25s, transform 0.25s;
+}}
+.node-root:hover circle {{
+  filter: drop-shadow(0 6px 24px var(--glow)) brightness(1.08);
+  transform: scale(1.07);
+}}
+.node-root text {{
+  fill: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  text-anchor: middle;
+  dominant-baseline: central;
+  pointer-events: none;
+  letter-spacing: 0.02em;
+}}
+
+/* Branch nodes (level 1) */
+.node-branch circle {{
+  fill: var(--accent-2);
+  stroke: var(--node-stroke);
+  stroke-width: 2.5px;
+  filter: drop-shadow(0 2px 8px var(--shadow));
+  transition: filter 0.2s, transform 0.2s;
+}}
+.node-branch:hover circle {{
+  filter: drop-shadow(0 4px 14px var(--glow)) brightness(1.10);
+  transform: scale(1.10);
+}}
+.node-branch text {{
+  fill: #ffffff;
+  font-size: 11.5px;
+  font-weight: 600;
+  text-anchor: middle;
+  dominant-baseline: central;
+  pointer-events: none;
+}}
+
+/* Leaf nodes (level 2+) */
+.node-leaf circle {{
+  fill: var(--surface);
+  stroke: var(--accent);
+  stroke-width: 1.8px;
+  filter: drop-shadow(0 1px 4px var(--shadow));
+  transition: filter 0.2s, transform 0.2s;
+}}
+.node-leaf:hover circle {{
+  fill: var(--accent-soft);
+  filter: drop-shadow(0 3px 10px var(--glow));
+  transform: scale(1.12);
+}}
+.node-leaf text {{
+  fill: var(--text);
+  font-size: 10.5px;
+  font-weight: 500;
+  pointer-events: none;
+}}
+
+/* Tooltip */
+#tooltip {{
+  position: fixed;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 6px 12px;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px var(--shadow);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  max-width: 240px;
+  z-index: 100;
+}}
+
+/* Toolbar */
+#toolbar {{
+  position: fixed;
+  bottom: 22px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--toolbar-bg);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid var(--border);
+  border-radius: 40px;
+  padding: 7px 14px;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  box-shadow: 0 8px 32px var(--shadow);
+  transition: background 0.4s, border 0.4s;
+  z-index: 50;
+}}
+#toolbar button {{
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-secondary);
+  padding: 5px 13px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  transition: all 0.18s;
+  white-space: nowrap;
+}}
+#toolbar button:hover {{
+  background: var(--btn-hover);
+  border-color: var(--border);
+  color: var(--text);
+}}
+#toolbar .sep {{
+  width: 1px;
+  height: 16px;
+  background: var(--border);
+  margin: 0 2px;
+}}
+#node-count {{
+  font-size: 10px;
+  color: var(--text-secondary);
+  padding: 0 6px;
+}}
+</style>
+</head>
+<body>
+<svg id="canvas"></svg>
+<div id="tooltip"></div>
+<div id="toolbar">
+  <button onclick="zoomIn()">＋ Zoom</button>
+  <button onclick="zoomOut()">－ Zoom</button>
+  <button onclick="resetView()">⊙ Reset</button>
+  <div class="sep"></div>
+  <button onclick="expandAll()">Expand All</button>
+  <button onclick="collapseLeaves()">Collapse</button>
+  <div class="sep"></div>
+  <span id="node-count"></span>
+</div>
+
+<script>
+const RAW = {data};
+
+// ── Build D3 hierarchy from flat nodes + links ─────────────────────────
+const nodeMap = {{}};
+RAW.nodes.forEach(n => {{ nodeMap[n.id] = {{ ...n, children: [] }}; }});
+RAW.links.forEach(l => {{
+  const sid = typeof l.source === 'object' ? l.source.id : l.source;
+  const tid = typeof l.target === 'object' ? l.target.id : l.target;
+  if (nodeMap[sid] && nodeMap[tid]) nodeMap[sid].children.push(nodeMap[tid]);
+}});
+const rootId = RAW.nodes.find(n => n.level === 0)?.id || RAW.nodes[0]?.id;
+const rootData = nodeMap[rootId];
+
+// ── Sizes ──────────────────────────────────────────────────────────────
+const R = {{ 0: 44, 1: 28, 2: 16 }};
+function nodeR(d) {{ return R[d.data.level] ?? 14; }}
+
+// ── SVG setup ─────────────────────────────────────────────────────────
+const svg = d3.select('#canvas');
+const W = () => window.innerWidth;
+const H = () => window.innerHeight;
+
+const g = svg.append('g').attr('class', 'root-g');
+
+const zoom = d3.zoom()
+  .scaleExtent([0.08, 4])
+  .on('zoom', e => g.attr('transform', e.transform));
+svg.call(zoom).on('dblclick.zoom', null);
+
+// ── Tooltip ────────────────────────────────────────────────────────────
+const tip = d3.select('#tooltip');
+function showTip(evt, label) {{
+  tip.text(label).style('opacity', 1)
+    .style('left', (evt.clientX + 14) + 'px')
+    .style('top',  (evt.clientY - 10) + 'px');
+}}
+function hideTip() {{ tip.style('opacity', 0); }}
+
+// ── Radial tree layout ────────────────────────────────────────────────
+let hierarchy;
+let linkSel, nodeSel;
+
+function buildLayout() {{
+  const w = W(), h = H();
+  const n = RAW.nodes.length;
+  // Scale radius so nodes don't overlap based on count
+  const innerR = Math.min(w, h) * 0.20 + Math.max(0, n - 10) * 2.5;
+  const outerR = Math.min(w, h) * 0.40 + Math.max(0, n - 10) * 4;
+
+  const tree = d3.tree()
+    .size([2 * Math.PI, outerR])
+    .separation((a, b) => (a.parent === b.parent ? 1.1 : 1.8) / a.depth);
+
+  hierarchy = tree(d3.hierarchy(rootData));
+
+  // Remove old elements
+  g.selectAll('.link').remove();
+  g.selectAll('.node').remove();
+
+  // ── Links ─────────────────────────────────────────────────────────
+  const radialLink = d3.linkRadial()
+    .angle(d => d.x)
+    .radius(d => d.y);
+
+  linkSel = g.append('g').attr('class', 'links')
+    .selectAll('path')
+    .data(hierarchy.links())
+    .join('path')
+    .attr('class', 'link')
+    .attr('d', radialLink);
+
+  // ── Nodes ─────────────────────────────────────────────────────────
+  nodeSel = g.append('g').attr('class', 'nodes')
+    .selectAll('g')
+    .data(hierarchy.descendants())
+    .join('g')
+    .attr('class', d => {{
+      if (d.data.level === 0) return 'node node-root';
+      if (d.data.level === 1) return 'node node-branch';
+      return 'node node-leaf';
+    }})
+    .attr('transform', d => `rotate(${{d.x * 180 / Math.PI - 90}}) translate(${{d.y}}, 0)`)
+    .on('mouseover', (evt, d) => showTip(evt, d.data.label))
+    .on('mousemove', (evt, d) => showTip(evt, d.data.label))
+    .on('mouseout', hideTip);
+
+  nodeSel.append('circle').attr('r', nodeR);
+
+  nodeSel.append('text')
+    .attr('transform', d => {{
+      if (d.data.level === 0) return '';
+      const angle = d.x * 180 / Math.PI;
+      const flip = angle > 90 && angle < 270;
+      return `rotate(${{flip ? 180 : 0}})`;
+    }})
+    .attr('text-anchor', d => {{
+      if (d.data.level === 0) return 'middle';
+      const angle = d.x * 180 / Math.PI;
+      const flip = angle > 90 && angle < 270;
+      return flip ? 'end' : 'start';
+    }})
+    .attr('dx', d => {{
+      if (d.data.level === 0) return 0;
+      const angle = d.x * 180 / Math.PI;
+      const flip = angle > 90 && angle < 270;
+      return flip ? -(nodeR(d) + 6) : (nodeR(d) + 6);
+    }})
+    .attr('dy', d => d.data.level === 0 ? '0.35em' : '0.35em')
+    .text(d => {{
+      // Truncate long labels for leaves
+      const max = d.data.level === 2 ? 28 : 40;
+      return d.data.label.length > max ? d.data.label.slice(0, max - 1) + '…' : d.data.label;
+    }});
+
+  document.getElementById('node-count').textContent = RAW.nodes.length + ' nodes';
+  centerView();
+}}
+
+function centerView() {{
+  const w = W(), h = H();
+  svg.transition().duration(500).call(
+    zoom.transform,
+    d3.zoomIdentity.translate(w / 2, h / 2)
+  );
+}}
+
+function resetView() {{
+  svg.transition().duration(400).call(
+    zoom.transform,
+    d3.zoomIdentity.translate(W() / 2, H() / 2)
+  );
+}}
+
+function zoomIn()  {{ svg.transition().duration(250).call(zoom.scaleBy, 1.35); }}
+function zoomOut() {{ svg.transition().duration(250).call(zoom.scaleBy, 0.75); }}
+
+function expandAll() {{
+  g.selectAll('.node-leaf').style('opacity', 1);
+  g.selectAll('.link').style('opacity', 1);
+}}
+
+function collapseLeaves() {{
+  g.selectAll('.node-leaf').style('opacity', 0.15);
+  g.selectAll('.link').filter(d => d.target.data.level >= 2).style('opacity', 0.10);
+}}
+
+// ── Init & resize ──────────────────────────────────────────────────────
+svg.attr('width', W()).attr('height', H());
+buildLayout();
+
+window.addEventListener('resize', () => {{
+  svg.attr('width', W()).attr('height', H());
+  buildLayout();
+}});
+
+// Report content height to parent for auto-sizing iframe
+function reportHeight() {{
+  const h = document.documentElement.scrollHeight || document.body.scrollHeight;
+  if (h) window.parent.postMessage({{ __visualHeight: h }}, '*');
+}}
+setTimeout(reportHeight, 200);
+setTimeout(reportHeight, 800);
+</script>
+</body>
+</html>
+"""

@@ -1,0 +1,76 @@
+<!-- HEAD -->
+<style>
+    .summary-card {
+        transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+    .summary-card:hover {
+        transform: translateY(-2px);
+        border-color: rgba(168, 85, 247, 0.25);
+    }
+    .bullet-item::before {
+        content: "•";
+        color: #a855f7;
+        font-weight: bold;
+        display: inline-block;
+        width: 1em;
+        margin-left: -1em;
+    }
+</style>
+
+<!-- BODY -->
+<div class="w-full max-w-5xl flex flex-col gap-6 animate-fade-in">
+    <!-- Grid of summary panels -->
+    <div id="summary-grid" class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+        <!-- Summary cards injected here -->
+    </div>
+</div>
+
+<!-- SCRIPT -->
+<script>
+    document.getElementById('template-name-label').innerText = 'Summary Cheat Sheet';
+
+    function renderSummarySheet() {
+        const grid = document.getElementById('summary-grid');
+        grid.innerHTML = '';
+
+        const sections = VISUAL_DATA.sections || [];
+
+        sections.forEach((sec, idx) => {
+            const card = document.createElement('div');
+            card.className = 'summary-card glass-panel p-6 rounded-2xl bg-zinc-950/15 border border-white/5 flex flex-col gap-3.5';
+
+            // Generate clean title header with accent borders
+            const colors = ['border-purple-500/50', 'border-pink-500/50', 'border-amber-500/50', 'border-blue-500/50', 'border-teal-500/50'];
+            const activeColor = colors[idx % colors.length];
+
+            let bulletsHTML = '';
+            if (sec.bullets && sec.bullets.length > 0) {
+                bulletsHTML = `
+                    <ul class="flex flex-col gap-2.5 pl-4 mt-2">
+                        ${sec.bullets.map(b => `<li class="bullet-item text-xs text-zinc-400 leading-relaxed font-medium">${b}</li>`).join('')}
+                    </ul>
+                `;
+            }
+
+            card.innerHTML = `
+                <div class="flex flex-col gap-1.5 border-b border-zinc-900 pb-3">
+                    <h3 class="text-sm font-extrabold uppercase tracking-widest text-zinc-500">Section ${idx + 1}</h3>
+                    <h2 class="text-base font-bold text-white leading-snug">${sec.heading}</h2>
+                </div>
+                
+                ${sec.summary ? `<p class="text-xs text-zinc-300 leading-relaxed font-medium bg-black/10 p-3 rounded-xl border border-white/5 border-l-4 ${activeColor}">${sec.summary}</p>` : ''}
+                
+                ${bulletsHTML}
+            `;
+
+            grid.appendChild(card);
+        });
+
+        if (sections.length === 0) {
+            grid.innerHTML = `<div class="col-span-full text-center text-zinc-500 text-xs italic py-8">No summary sections on file</div>`;
+        }
+    }
+
+    // Initialize
+    renderSummarySheet();
+</script>

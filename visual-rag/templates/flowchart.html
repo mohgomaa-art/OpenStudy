@@ -1,0 +1,210 @@
+<!-- HEAD -->
+<style>
+    .flow-node {
+        position: relative;
+        transition: transform 0.25s, border-color 0.25s, box-shadow 0.25s;
+    }
+    .flow-node.is-active {
+        transform: scale(1.03);
+        box-shadow: 0 0 20px -2px rgba(139, 92, 246, 0.4);
+    }
+    .flow-step {
+        border-left: 4px solid #3b82f6;
+    }
+    .flow-decision {
+        border-left: 4px solid #f59e0b;
+    }
+    .flow-outcome {
+        border-left: 4px solid #10b981;
+    }
+    .flow-arrow {
+        stroke: #374151;
+        fill: #374151;
+        transition: stroke 0.3s, fill 0.3s;
+    }
+    .flow-node.is-active + .flow-connector .flow-arrow {
+        stroke: #8b5cf6;
+        fill: #8b5cf6;
+    }
+</style>
+
+<!-- BODY -->
+<div class="w-full max-w-2xl flex flex-col items-center gap-4 animate-fade-in">
+    <!-- Active Step Navigation Overlay -->
+    <div class="w-full flex justify-between items-center glass-panel px-6 py-4 rounded-2xl bg-zinc-950/20 mb-2">
+        <div class="flex flex-col">
+            <span class="text-xs text-zinc-400 font-semibold tracking-wider uppercase">Interactive Pathway</span>
+            <span id="nav-status-text" class="text-sm font-bold text-white">Select a step to begin tracking</span>
+        </div>
+        <div class="flex gap-2">
+            <button onclick="prevStep()" class="glass-panel px-3 py-1.5 rounded-lg text-zinc-400 hover:text-white text-xs bg-zinc-900/30">
+                Back
+            </button>
+            <button onclick="nextStep()" class="glass-panel px-3 py-1.5 rounded-lg text-purple-400 hover:text-purple-300 text-xs font-semibold bg-zinc-900/30">
+                Continue
+            </button>
+        </div>
+    </div>
+
+    <!-- Flowchart nodes container -->
+    <div id="flow-container" class="w-full flex flex-col items-center">
+        <!-- Rendered nodes will go here -->
+    </div>
+</div>
+
+<!-- SCRIPT -->
+<script>
+    document.getElementById('template-name-label').innerText = 'Clinical Pathway Flowchart';
+
+    let activeStepId = null;
+    let stepMap = new Map();
+
+    function renderFlow() {
+        const container = document.getElementById('flow-container');
+        container.innerHTML = '';
+        
+        const steps = VISUAL_DATA.steps || [];
+        
+        // Sort steps by ID
+        steps.sort((a, b) => a.id - b.id);
+        
+        // Map steps by id for fast lookup
+        stepMap.clear();
+        steps.forEach(s => stepMap.set(s.id, s));
+
+        // Start step is the one that has nobody pointing to it, or simply the first
+        const pointedTo = new Set(steps.map(s => s.next).filter(n => n !== null));
+        const startStep = steps.find(s => !pointedTo.has(s.id)) || steps[0];
+        
+        if (startStep) {
+            activeStepId = startStep.id;
+        }
+
+        // Render steps in logical chain order where possible, or sorted order as fallback
+        let currentStep = startStep;
+        let renderedIds = new Set();
+        let chain = [];
+
+        // Build path chain
+        while (currentStep && !renderedIds.has(currentStep.id)) {
+            chain.push(currentStep);
+            renderedIds.add(currentStep.id);
+            currentStep = stepMap.get(currentStep.next);
+        }
+
+        // Add any disconnected nodes that were left out
+        steps.forEach(s => {
+            if (!renderedIds.has(s.id)) {
+                chain.push(s);
+                renderedIds.add(s.id);
+            }
+        });
+
+        // Generate HTML elements
+        chain.forEach((step, idx) => {
+            // Node Card
+            const card = document.createElement('div');
+            card.id = `step-node-${step.id}`;
+            card.onclick = () => selectStep(step.id);
+            
+            let typeClass = 'flow-step';
+            let iconText = 'Step';
+            let iconColor = 'bg-blue-500/10 text-blue-400 border-blue-500/20';
+            
+            if (step.type === 'decision') {
+                typeClass = 'flow-decision';
+                iconText = 'Question';
+                iconColor = 'bg-amber-500/10 text-amber-400 border-amber-500/20';
+            } else if (step.type === 'outcome') {
+                typeClass = 'flow-outcome';
+                iconText = 'Conclusion';
+                iconColor = 'bg-green-500/10 text-green-400 border-green-500/20';
+            }
+
+            card.setAttribute('class', `w-full glass-panel flow-node ${typeClass} p-5 rounded-xl cursor-pointer bg-zinc-950/15`);
+            
+            card.innerHTML = `
+                <div class="flex items-start gap-4">
+                    <div class="flex-shrink-0 w-8 h-8 rounded-full border flex items-center justify-center text-[10px] font-bold ${iconColor}">
+                        ${step.id}
+                    </div>
+                    <div class="flex-grow">
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="text-[10px] font-bold tracking-widest uppercase text-zinc-500">${iconText}</span>
+                        </div>
+                        <h3 class="text-base font-bold text-white leading-snug">${step.label}</h3>
+                        ${step.sublabel ? `<p class="text-zinc-400 text-xs mt-1.5 leading-relaxed">${step.sublabel}</p>` : ''}
+                    </div>
+                </div>
+            `;
+            container.appendChild(card);
+
+            // Connective Line & Arrow (if not the last element in chain)
+            if (idx < chain.length - 1) {
+                const connector = document.createElement('div');
+                connector.setAttribute('class', 'flow-connector py-4 flex flex-col items-center justify-center');
+                connector.innerHTML = `
+                    <svg width="24" height="24" viewBox="0 0 24 24" class="w-6 h-6">
+                        <line x1="12" y1="0" x2="12" y2="18" stroke="#27272a" stroke-width="2" stroke-dasharray="4" class="flow-arrow"></line>
+                        <polygon points="8,14 12,22 16,14" fill="#27272a" class="flow-arrow"></polygon>
+                    </svg>
+                `;
+                container.appendChild(connector);
+            }
+        });
+
+        updateStepHighlight();
+    }
+
+    function selectStep(id) {
+        activeStepId = id;
+        updateStepHighlight();
+    }
+
+    function updateStepHighlight() {
+        // Clear active class from all nodes
+        document.querySelectorAll('.flow-node').forEach(node => {
+            node.classList.remove('is-active', 'border-purple-500/30');
+        });
+
+        const activeNode = document.getElementById(`step-node-${activeStepId}`);
+        if (activeNode) {
+            activeNode.classList.add('is-active', 'border-purple-500/30');
+            // Smooth scroll into view
+            activeNode.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        const step = stepMap.get(activeStepId);
+        const navText = document.getElementById('nav-status-text');
+        if (step) {
+            if (step.type === 'decision') {
+                navText.innerText = `Decision Point: ${step.label}`;
+            } else if (step.type === 'outcome') {
+                navText.innerText = `Outcome Reached: ${step.label}`;
+            } else {
+                navText.innerText = `Current Step: ${step.label}`;
+            }
+        }
+    }
+
+    function nextStep() {
+        const step = stepMap.get(activeStepId);
+        if (step && step.next !== null && stepMap.has(step.next)) {
+            activeStepId = step.next;
+            updateStepHighlight();
+        }
+    }
+
+    function prevStep() {
+        // Find who points to activeStepId
+        const steps = VISUAL_DATA.steps || [];
+        const prev = steps.find(s => s.next === activeStepId);
+        if (prev) {
+            activeStepId = prev.id;
+            updateStepHighlight();
+        }
+    }
+
+    // Initialize Flowchart
+    renderFlow();
+</script>

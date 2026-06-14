@@ -1,0 +1,249 @@
+# ============================================================
+# OpenStudy - Production .gitignore
+# ============================================================
+
+# ============================================================
+# Secrets & Credentials
+# ============================================================
+
+.env
+.env.*
+*.env
+
+secrets.json
+credentials.json
+service_account*.json
+*_key.json
+
+api_keys.txt
+keys.txt
+
+# ============================================================
+# Python User Data
+# ============================================================
+
+data/settings.json
+data/*.json
+
+data/companion.db
+data/*.db
+data/*.db-wal
+data/*.db-shm
+
+data/vault/
+data/rag_uploads/
+data/models/
+data/cache/
+data/tmp/
+data/temp/
+
+# Exports generated locally
+data/exports/
+
+# ============================================================
+# AI / RAG / Vector Databases
+# ============================================================
+
+chroma_db/
+*.chroma
+
+faiss/
+*.faiss
+
+vectorstore/
+vector_store/
+
+embeddings/
+embedding_cache/
+
+rag_data/
+
+# ============================================================
+# Python
+# ============================================================
+
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+.Python
+
+*.egg
+*.egg-info/
+
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+.coverage
+htmlcov/
+
+build/
+dist/
+
+# ============================================================
+# Virtual Environments
+# ============================================================
+
+venv/
+.venv/
+env/
+ENV/
+
+# ============================================================
+# Node / React / Vite
+# ============================================================
+
+node_modules/
+frontend/node_modules/
+
+frontend/dist/
+frontend/.vite/
+
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+*.local
+
+# ============================================================
+# Tauri
+# ============================================================
+
+frontend/src-tauri/target/
+frontend/src-tauri/WixTools/
+frontend/src-tauri/gen/
+
+# Generated binaries
+frontend/src-tauri/OpenStudyBackend.exe
+
+# ============================================================
+# Installers & Portable Builds
+# ============================================================
+
+dist-installer/
+dist-portable/
+
+*.exe
+*.msi
+
+# ============================================================
+# Logs
+# ============================================================
+
+*.log
+
+debug.txt
+
+frontend_debug.log
+vite-test.log
+
+# ============================================================
+# Generated PDFs / Reports
+# ============================================================
+
+*.tmp.pdf
+
+# Optional:
+# Uncomment if PDFs are generated locally only
+# *.pdf
+
+# ============================================================
+# Zip Archives
+# ============================================================
+
+*.zip
+*.7z
+*.rar
+
+# ============================================================
+# Rust
+# ============================================================
+
+target/
+
+# Keep Cargo.lock only if app library
+# Cargo.lock
+
+# ============================================================
+# IDE
+# ============================================================
+
+.idea/
+
+.vscode/
+
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# ============================================================
+# OS Files
+# ============================================================
+
+.DS_Store
+
+Thumbs.db
+
+Desktop.ini
+
+# ============================================================
+# Temporary Files
+# ============================================================
+
+tmp/
+temp/
+scratch/
+
+*.bak
+*.old
+
+*~
+
+*.swp
+*.swo
+
+# ============================================================
+# Personal Utility Scripts
+# ============================================================
+
+fix.py
+fix2.py
+fix3.py
+
+frontend/src/fix_escapes.py
+
+tools/crop_logo.py
+tools/generate_icons.py
+
+# ============================================================
+# Claude / Cursor / AI
+# ============================================================
+
+.claude/
+.cursor/
+.cursor-cache/
+
+# ============================================================
+# NotebookMG Companion Runtime
+# ============================================================
+
+memory/
+sessions/
+conversation_history/
+chat_history/
+
+# ============================================================
+# Build Artifacts
+# ============================================================
+
+release/
+debug/
+
+out/
+
+bin/
+
+obj/

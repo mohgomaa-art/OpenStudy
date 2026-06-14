@@ -1,0 +1,149 @@
+<!-- HEAD -->
+<style>
+    .heatmap-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 4px;
+        width: 100%;
+        max-width: 380px;
+    }
+    .heatmap-cell {
+        aspect-ratio: 1;
+        border-radius: 3px;
+        background-color: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        cursor: pointer;
+        transition: transform 0.15s, border-color 0.15s;
+        position: relative;
+    }
+    .heatmap-cell:hover {
+        transform: scale(1.12);
+        border-color: var(--accent, #3b82f6);
+    }
+    .level-0 { background-color: rgba(255, 255, 255, 0.03); }
+    .level-1 { background-color: rgba(59, 130, 246, 0.15); border-color: rgba(59, 130, 246, 0.3); }
+    .level-2 { background-color: rgba(59, 130, 246, 0.35); border-color: rgba(59, 130, 246, 0.5); }
+    .level-3 { background-color: rgba(59, 130, 246, 0.65); border-color: rgba(59, 130, 246, 0.8); }
+    .level-4 { background-color: var(--accent, #3b82f6); border-color: #ffffff; }
+</style>
+
+<!-- BODY -->
+<div class="w-full max-w-xl glass-panel p-6 rounded-2xl bg-zinc-950/20 shadow-2xl flex flex-col gap-6 animate-fade-in">
+    <!-- Header -->
+    <div class="border-b border-zinc-800/40 pb-3 flex justify-between items-center">
+        <div>
+            <h2 id="view-title" class="text-base font-bold text-white">Revision Heatmap</h2>
+            <p id="view-subject" class="text-xs text-zinc-500 mt-0.5">Subject Revision Consistency</p>
+        </div>
+        <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/20">Mastery Heatmap</span>
+    </div>
+
+    <!-- Calendar Panel -->
+    <div class="flex flex-col items-center gap-4 py-2">
+        <div class="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mb-2 self-start pl-4">Past 28 Days Revision Activity</div>
+        
+        <!-- 7x4 Grid for 28 Days -->
+        <div id="grid-container" class="heatmap-grid">
+            <!-- Cells generated here -->
+        </div>
+
+        <!-- Legend -->
+        <div class="flex gap-2 items-center text-[10px] text-zinc-500 mt-3 self-end pr-4">
+            <span>Less</span>
+            <div class="w-3.5 h-3.5 rounded level-0 border border-zinc-800/40"></div>
+            <div class="w-3.5 h-3.5 rounded level-1"></div>
+            <div class="w-3.5 h-3.5 rounded level-2"></div>
+            <div class="w-3.5 h-3.5 rounded level-3"></div>
+            <div class="w-3.5 h-3.5 rounded level-4"></div>
+            <span>More</span>
+        </div>
+    </div>
+
+    <!-- Active cell stats reveal -->
+    <div class="glass-panel p-4 rounded-xl bg-zinc-900/30 border border-zinc-800/50">
+        <h4 class="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-1.5" id="stat-header">Activity Stats</h4>
+        <p id="stat-detail" class="text-zinc-400 text-xs leading-relaxed">Hover or click any calendar day cell to view revision score history.</p>
+    </div>
+</div>
+
+<!-- SCRIPT -->
+<script>
+    document.getElementById('template-name-label').innerText = 'Study Consistency Heatmap';
+
+    let selectedCellIdx = null;
+
+    function renderHeatmap() {
+        const title = VISUAL_DATA.title || "Study Consistency Heatmap";
+        document.getElementById('view-title').innerText = title;
+
+        const subject = VISUAL_DATA.subject || "General";
+        document.getElementById('view-subject').innerText = `Subject: ${subject} Revision Consistency`;
+
+        const dataPoints = VISUAL_DATA.data_points || [];
+        // Map data points by date YYYY-MM-DD
+        const dataMap = new Map();
+        dataPoints.forEach(dp => dataMap.set(dp.date, dp.value));
+
+        const container = document.getElementById('grid-container');
+        container.innerHTML = '';
+
+        // Generate past 28 dates ending today
+        const dates = [];
+        const today = new Date();
+        for (let i = 27; i >= 0; i--) {
+            const d = new Date();
+            d.setDate(today.getDate() - i);
+            const dateStr = d.toISOString().split('T')[0];
+            dates.push({
+                date: dateStr,
+                displayDate: d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', weekday: 'short' })
+            });
+        }
+
+        dates.forEach((item, idx) => {
+            const val = dataMap.get(item.date) || 0;
+            
+            // Map values to level classes (0 to 4)
+            let lvl = 0;
+            if (val > 0 && val <= 2) lvl = 1;
+            else if (val > 2 && val <= 5) lvl = 2;
+            else if (val > 5 && val <= 9) lvl = 3;
+            else if (val > 9) lvl = 4;
+
+            const cell = document.createElement('div');
+            cell.className = `heatmap-cell level-${lvl}`;
+            cell.id = `cell-${idx}`;
+            
+            const tooltip = document.createElement('title');
+            tooltip.textContent = `${item.displayDate}: ${val} revisions`;
+            cell.appendChild(tooltip);
+
+            cell.addEventListener('click', () => loadCellStats(idx, item.displayDate, val));
+            container.appendChild(cell);
+        });
+    }
+
+    function loadCellStats(idx, displayDate, value) {
+        // Clear old highlight
+        const cells = document.getElementsByClassName('heatmap-cell');
+        for (let i = 0; i < cells.length; i++) {
+            cells[i].style.transform = 'scale(1)';
+        }
+
+        const selectedCell = document.getElementById(`cell-${idx}`);
+        selectedCell.style.transform = 'scale(1.15)';
+
+        document.getElementById('stat-header').innerText = `Activity Stats: ${displayDate}`;
+        
+        let message = `You logged ${value} active revision operations on this day.`;
+        if (value === 0) {
+            message = "No study activity recorded on this day. Dedicate 5 minutes today to build your streak!";
+        } else if (value > 8) {
+            message = `🔥 Strong performance! ${value} revisions completed. Excellent recall consolidation.`;
+        }
+
+        document.getElementById('stat-detail').innerHTML = message;
+    }
+
+    renderHeatmap();
+</script>

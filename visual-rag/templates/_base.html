@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="{{THEME}}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{TITLE}}</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- KaTeX CSS & JS for LaTeX Math Rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js" onload="renderMath();"></script>
+    <script>
+        function renderMath() {
+            if (typeof renderMathInElement === 'function') {
+                renderMathInElement(document.body, {
+                    delimiters: [
+                        {left: '$$', right: '$$', display: true},
+                        {left: '$', right: '$', display: false},
+                        {left: '\\(', right: '\\)', display: false},
+                        {left: '\\[', right: '\\]', display: true}
+                    ],
+                    throwOnError : false
+                });
+            }
+        }
+        window.addEventListener('load', renderMath);
+        document.addEventListener('DOMContentLoaded', renderMath);
+        window.renderMath = renderMath;
+
+        // MutationObserver to automatically render LaTeX math on dynamic DOM modifications
+        let mathTimeout = null;
+        const observer = new MutationObserver((mutations) => {
+            let shouldRender = false;
+            for (const mutation of mutations) {
+                if (mutation.addedNodes.length > 0 || mutation.type === 'characterData') {
+                    shouldRender = true;
+                    break;
+                }
+            }
+            if (shouldRender) {
+                if (mathTimeout) clearTimeout(mathTimeout);
+                mathTimeout = setTimeout(renderMath, 40);
+            }
+        });
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true,
+            characterData: true
+        });
+    </script>
+    <style>
+        [data-theme="clinical"] {
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --border: #e2e8f0;
+            --text: #0f172a;
+            --text-secondary: #64748b;
+            --accent: #2563eb;
+            --accent-soft: #dbeafe;
+            --accent-2: #0d9488;
+            --accent-2-soft: #ccfbf1;
+            --success: #16a34a;
+            --warning: #d97706;
+            --danger: #dc2626;
+
+            /* Derived compatibility variables */
+            --accent-glow: rgba(37, 99, 235, 0.4);
+            --accent-bg: rgba(37, 99, 235, 0.08);
+            --accent-border: rgba(37, 99, 235, 0.2);
+            --accent-text: #2563eb;
+        }
+
+        [data-theme="nightshift"] {
+            --bg: #0a0e17;
+            --surface: #131a26;
+            --border: rgba(255, 255, 255, 0.08);
+            --text: #e2e8f0;
+            --text-secondary: #94a3b8;
+            --accent: #38bdf8;
+            --accent-soft: rgba(56, 189, 248, 0.15);
+            --accent-2: #a78bfa;
+            --accent-2-soft: rgba(167, 139, 250, 0.15);
+            --success: #4ade80;
+            --warning: #fbbf24;
+            --danger: #f87171;
+
+            /* Derived compatibility variables */
+            --accent-glow: rgba(56, 189, 248, 0.4);
+            --accent-bg: rgba(56, 189, 248, 0.08);
+            --accent-border: rgba(56, 189, 248, 0.2);
+            --accent-text: #38bdf8;
+        }
+
+        [data-theme="botanica"] {
+            --bg: #f6f8f1;
+            --surface: #ffffff;
+            --border: #dde6d5;
+            --text: #2b3a26;
+            --text-secondary: #6b7d63;
+            --accent: #4d7c4a;
+            --accent-soft: #e3ecdf;
+            --accent-2: #c9852f;
+            --accent-2-soft: #f6e6cf;
+            --success: #4d7c4a;
+            --warning: #c9852f;
+            --danger: #b3473a;
+
+            /* Derived compatibility variables */
+            --accent-glow: rgba(77, 124, 74, 0.4);
+            --accent-bg: rgba(77, 124, 74, 0.08);
+            --accent-border: rgba(77, 124, 74, 0.2);
+            --accent-text: #4d7c4a;
+        }
+
+        [data-theme="bloom"] {
+            --bg: #fff5f7;
+            --surface: #ffffff;
+            --border: #fbd5e0;
+            --text: #4a2540;
+            --text-secondary: #9c7a8f;
+            --accent: #ec4899;
+            --accent-soft: #fce7f3;
+            --accent-2: #14b8a6;
+            --accent-2-soft: #ccfbf1;
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --danger: #e11d48;
+
+            /* Derived compatibility variables */
+            --accent-glow: rgba(236, 72, 153, 0.4);
+            --accent-bg: rgba(236, 72, 153, 0.08);
+            --accent-border: rgba(236, 72, 153, 0.2);
+            --accent-text: #ec4899;
+        }
+
+        [data-theme="solstice"] {
+            --bg: #fff8f0;
+            --surface: #ffffff;
+            --border: #fde4cf;
+            --text: #3a2418;
+            --text-secondary: #8a6a55;
+            --accent: #f97316;
+            --accent-soft: #ffedd5;
+            --accent-2: #0ea5e9;
+            --accent-2-soft: #e0f2fe;
+            --success: #65a30d;
+            --warning: #eab308;
+            --danger: #dc2626;
+
+            /* Derived compatibility variables */
+            --accent-glow: rgba(249, 115, 22, 0.4);
+            --accent-bg: rgba(249, 115, 22, 0.08);
+            --accent-border: rgba(249, 115, 22, 0.2);
+            --accent-text: #f97316;
+        }
+
+        [data-theme="arcane"] {
+            --bg: #0d0a1a;
+            --surface: #1a1430;
+            --border: rgba(167, 139, 250, 0.15);
+            --text: #f1eaff;
+            --text-secondary: #a89bc4;
+            --accent: #c084fc;
+            --accent-soft: rgba(192, 132, 252, 0.15);
+            --accent-2: #2dd4bf;
+            --accent-2-soft: rgba(45, 212, 191, 0.15);
+            --success: #34d399;
+            --warning: #fbbf24;
+            --danger: #fb7185;
+
+            /* Derived compatibility variables */
+            --accent-glow: rgba(192, 132, 252, 0.4);
+            --accent-bg: rgba(192, 132, 252, 0.08);
+            --accent-border: rgba(192, 132, 252, 0.2);
+            --accent-text: #c084fc;
+        }
+
+        /* ── Base application overrides ── */
+        body {
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 0;
+            transition: background-color 0.2s ease, color 0.2s ease;
+        }
+
+        .glass-panel {
+            background-color: var(--surface) !important;
+            background: var(--surface) !important;
+            border: 1px solid var(--border) !important;
+            color: var(--text) !important;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.08) !important;
+        }
+
+        /* ── Tailwind utility overrides for seamless runtime theming ── */
+        [data-theme] .text-white,
+        [data-theme] .text-zinc-100,
+        [data-theme] .text-zinc-200,
+        [data-theme] .text-zinc-300 {
+            color: var(--text) !important;
+        }
+
+        [data-theme] .text-zinc-400,
+        [data-theme] .text-zinc-500 {
+            color: var(--text-secondary) !important;
+        }
+
+        /* Accent texts mapping */
+        [data-theme] .text-purple-400,
+        [data-theme] .text-indigo-400,
+        [data-theme] .text-pink-400,
+        [data-theme] .text-blue-500,
+        [data-theme] .text-purple-500,
+        [data-theme] .text-indigo-500 {
+            color: var(--accent-text) !important;
+        }
+
+        /* Border overrides */
+        [data-theme] .border-zinc-800,
+        [data-theme] .border-zinc-900,
+        [data-theme] .border-white\/5,
+        [data-theme] .border-white\/10 {
+            border-color: var(--border) !important;
+        }
+
+        [data-theme] .border-purple-500\/20,
+        [data-theme] .border-indigo-500\/20,
+        [data-theme] .border-pink-500\/20,
+        [data-theme] .border-blue-500\/20 {
+            border-color: var(--accent-border) !important;
+        }
+
+        /* Background overrides */
+        [data-theme] .bg-zinc-950\/20,
+        [data-theme] .bg-zinc-950\/10,
+        [data-theme] .bg-black\/20,
+        [data-theme] .bg-zinc-900 {
+            background-color: var(--surface) !important;
+        }
+
+        [data-theme] .bg-purple-600,
+        [data-theme] .bg-purple-500,
+        [data-theme] .bg-indigo-600,
+        [data-theme] .bg-blue-600,
+        [data-theme] .bg-pink-600 {
+            background-color: var(--accent) !important;
+            color: #ffffff !important;
+        }
+
+        [data-theme] .hover\:bg-purple-500:hover,
+        [data-theme] .hover\:bg-indigo-500:hover,
+        [data-theme] .hover\:bg-blue-500:hover,
+        [data-theme] .hover\:bg-pink-500:hover {
+            background-color: var(--accent) !important;
+            filter: brightness(0.95);
+        }
+
+        [data-theme] .bg-purple-500\/10,
+        [data-theme] .bg-indigo-500\/10,
+        [data-theme] .bg-pink-500\/10,
+        [data-theme] .bg-blue-500\/10 {
+            background-color: var(--accent-bg) !important;
+        }
+
+        /* Statuses mapping */
+        [data-theme] .text-green-400,
+        [data-theme] .text-green-500,
+        [data-theme] .text-emerald-500 {
+            color: var(--success) !important;
+        }
+
+        [data-theme] .bg-green-500\/10,
+        [data-theme] .bg-emerald-500\/10 {
+            background-color: var(--accent-soft) !important;
+        }
+
+        [data-theme] .text-amber-500,
+        [data-theme] .text-yellow-500 {
+            color: var(--warning) !important;
+        }
+
+        [data-theme] .bg-amber-500\/10 {
+            background-color: var(--accent-soft) !important;
+        }
+
+        [data-theme] .text-red-400,
+        [data-theme] .text-red-500 {
+            color: var(--danger) !important;
+        }
+
+        [data-theme] .bg-red-500\/10 {
+            background-color: var(--accent-soft) !important;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        /* ── Media print resets to prevent page clipping ── */
+        @media print {
+            html, body, main {
+                width: 100% !important;
+                height: auto !important;
+                min-height: 0 !important;
+                overflow: visible !important;
+                display: block !important;
+                background-color: #ffffff !important;
+                background: #ffffff !important;
+                color: #1e293b !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+            .glass-panel {
+                height: auto !important;
+                min-height: 0 !important;
+                max-height: none !important;
+                overflow: visible !important;
+                border: 1px solid #cbd5e1 !important;
+                background-color: #ffffff !important;
+                background: #ffffff !important;
+                box-shadow: none !important;
+            }
+            /* SVG aspect ratio auto-resizing */
+            svg {
+                max-width: 100% !important;
+                height: auto !important;
+                display: block !important;
+            }
+            /* Hide interactive elements in print */
+            .controls-overlay,
+            #template-name-label {
+                display: none !important;
+            }
+        }
+    </style>
+    <!-- TEMPLATE_HEAD -->
+</head>
+<body class="w-full h-full flex flex-col justify-center items-center overflow-hidden selection:bg-purple-500/30 p-2">
+    <!-- Main Workspace -->
+    <main class="w-full h-full flex flex-col justify-center items-center relative">
+        <!-- TEMPLATE_BODY -->
+    </main>
+
+    <!-- Hidden label to satisfy template script references without breaking layout -->
+    <div id="template-name-label" style="display: none;"></div>
+
+    <!-- DATA_INJECT -->
+    
+    <!-- TEMPLATE_SCRIPT -->
+</body>
+</html>

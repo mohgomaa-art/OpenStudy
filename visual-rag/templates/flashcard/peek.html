@@ -1,0 +1,166 @@
+<!-- HEAD -->
+<style>
+    .peek-container {
+        width: 100%;
+        max-width: 550px;
+        min-height: 320px;
+        background: linear-gradient(135deg, rgba(20, 20, 25, 0.8), rgba(28, 25, 38, 0.8));
+        border: 1px solid rgba(124, 58, 237, 0.2);
+        border-radius: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        padding: 2rem;
+        box-sizing: border-box;
+        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .peek-answer-box {
+        opacity: 0;
+        transform: translateY(10px);
+        filter: blur(4px);
+        transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+        pointer-events: none;
+        margin-top: 1.5rem;
+        border-top: 1px dashed rgba(255, 255, 255, 0.1);
+        padding-top: 1.2rem;
+    }
+    .peek-answer-box.is-visible {
+        opacity: 1;
+        transform: translateY(0);
+        filter: blur(0);
+        pointer-events: auto;
+    }
+</style>
+
+<!-- BODY -->
+<div class="w-full max-w-xl flex flex-col items-center gap-6 animate-fade-in">
+    <!-- Active recall progress indicator -->
+    <div class="w-full flex justify-between items-center text-sm text-zinc-400 px-2">
+        <span id="deck-progress">Card 1 of 5</span>
+        <span id="card-tag" class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-500/10 text-purple-400 border border-purple-500/20">Tag</span>
+    </div>
+
+    <!-- Peek Flashcard Panel -->
+    <div class="peek-container shadow-2xl">
+        <div class="flex flex-col gap-2">
+            <div class="text-xs font-semibold text-purple-400 tracking-widest uppercase">QUESTION / CONCEPT</div>
+            <div id="card-front-text" class="text-lg md:text-xl font-bold text-white leading-relaxed mt-2">
+                Question Loading...
+            </div>
+        </div>
+
+        <!-- Answer Section (Reveals in place) -->
+        <div id="answer-box" class="peek-answer-box">
+            <div class="text-xs font-semibold text-pink-400 tracking-widest uppercase mb-1">ANSWER / EXPLANATION</div>
+            <div id="card-back-text" class="text-sm md:text-base text-zinc-300 leading-relaxed overflow-y-auto pr-1">
+                Answer Loading...
+            </div>
+        </div>
+
+        <!-- Action trigger -->
+        <div class="mt-6 flex justify-center">
+            <button id="reveal-btn" onclick="togglePeek()" class="px-4 py-1.5 rounded-lg text-xs font-semibold bg-purple-500/20 text-purple-300 border border-purple-500/30 hover:bg-purple-500/35 transition cursor-pointer">
+                Reveal Answer
+            </button>
+        </div>
+    </div>
+
+    <!-- Navigation controls -->
+    <div class="flex items-center gap-4">
+        <button onclick="prevCard()" class="glass-panel px-4 py-2.5 rounded-xl text-zinc-400 hover:text-white hover:border-zinc-700 transition flex items-center gap-1 bg-zinc-950/20">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+            <span>Previous</span>
+        </button>
+        
+        <button onclick="markAsLearnt()" id="learn-btn" class="glass-panel px-5 py-2.5 rounded-xl text-green-400 border-green-500/20 hover:bg-green-500/10 transition flex items-center gap-1.5 bg-zinc-950/20">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <span id="learn-btn-text">Active Recall</span>
+        </button>
+        
+        <button onclick="nextCard()" class="glass-panel px-4 py-2.5 rounded-xl text-zinc-400 hover:text-white hover:border-zinc-700 transition flex items-center gap-1 bg-zinc-950/20">
+            <span>Next</span>
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+        </button>
+    </div>
+</div>
+
+<!-- SCRIPT -->
+<script>
+    document.getElementById('template-name-label').innerText = 'Inline Peek Flashcards';
+    
+    let currentIndex = 0;
+    const cards = VISUAL_DATA.cards || [];
+    const learntCards = new Set();
+    let isRevealed = false;
+    
+    function updateCard() {
+        if (cards.length === 0) return;
+        
+        const card = cards[currentIndex];
+        
+        // Hide answer box initially
+        const answerBox = document.getElementById('answer-box');
+        const revealBtn = document.getElementById('reveal-btn');
+        answerBox.classList.remove('is-visible');
+        revealBtn.innerText = 'Reveal Answer';
+        isRevealed = false;
+        
+        setTimeout(() => {
+            document.getElementById('card-front-text').innerText = card.front;
+            document.getElementById('card-back-text').innerText = card.back;
+            document.getElementById('card-tag').innerText = card.tag || 'General';
+            document.getElementById('deck-progress').innerText = `Card ${currentIndex + 1} of ${cards.length}`;
+            if (window.renderMath) window.renderMath();
+            
+            const learnBtn = document.getElementById('learn-btn');
+            const learnText = document.getElementById('learn-btn-text');
+            if (learntCards.has(currentIndex)) {
+                learnBtn.classList.replace('text-green-400', 'text-emerald-500');
+                learnBtn.classList.add('bg-emerald-500/10');
+                learnText.innerText = 'Learnt ✔';
+            } else {
+                learnBtn.classList.replace('text-emerald-500', 'text-green-400');
+                learnBtn.classList.remove('bg-emerald-500/10');
+                learnText.innerText = 'Active Recall';
+            }
+        }, 100);
+    }
+    
+    function togglePeek() {
+        const answerBox = document.getElementById('answer-box');
+        const revealBtn = document.getElementById('reveal-btn');
+        isRevealed = !isRevealed;
+        if (isRevealed) {
+            answerBox.classList.add('is-visible');
+            revealBtn.innerText = 'Hide Answer';
+        } else {
+            answerBox.classList.remove('is-visible');
+            revealBtn.innerText = 'Reveal Answer';
+        }
+        setTimeout(() => window.reportHeight?.(), 400);
+    }
+    
+    function nextCard() {
+        if (cards.length === 0) return;
+        currentIndex = (currentIndex + 1) % cards.length;
+        updateCard();
+    }
+    
+    function prevCard() {
+        if (cards.length === 0) return;
+        currentIndex = (currentIndex - 1 + cards.length) % cards.length;
+        updateCard();
+    }
+    
+    function markAsLearnt() {
+        if (learntCards.has(currentIndex)) {
+            learntCards.delete(currentIndex);
+        } else {
+            learntCards.add(currentIndex);
+        }
+        updateCard();
+    }
+    
+    // Initialize
+    updateCard();
+</script>

@@ -1,0 +1,295 @@
+<!-- HEAD -->
+<style>
+    .patient-chart {
+        border-right: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    @media (max-width: 768px) {
+        .patient-chart {
+            border-right: none;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            padding-bottom: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+    }
+    .vitals-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+        gap: 0.5rem;
+    }
+    .vital-box {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        padding: 0.5rem;
+        border-radius: 0.75rem;
+        text-align: center;
+    }
+</style>
+
+<!-- BODY -->
+<div class="w-full max-w-5xl glass-panel rounded-3xl p-6 md:p-8 animate-fade-in flex flex-col md:flex-row gap-8 bg-zinc-950/20">
+    
+    <!-- Left Column: Patient Chart (Persistent Context) -->
+    <div class="flex-1 flex flex-col gap-4 patient-chart md:pr-8">
+        <div class="flex items-center gap-3">
+            <span class="text-[10px] font-extrabold uppercase tracking-widest text-amber-500 bg-amber-500/10 border border-amber-500/20 px-2.5 py-0.5 rounded-full">
+                Active Chart
+            </span>
+            <span id="patient-demographics" class="text-xs text-zinc-400 font-bold uppercase tracking-wider">
+                Demographics
+            </span>
+        </div>
+        
+        <h2 class="text-lg font-bold text-white mt-1 border-b border-zinc-900 pb-2">Admission Case File</h2>
+
+        <!-- History of Present Illness -->
+        <div class="flex flex-col gap-1.5 mt-2">
+            <h4 class="text-[10px] font-extrabold uppercase tracking-widest text-zinc-500">Chief Complaint & Presentation</h4>
+            <p id="patient-presentation" class="text-xs text-zinc-300 leading-relaxed font-medium">
+                Presentation text.
+            </p>
+        </div>
+
+        <!-- Vitals Grid -->
+        <div class="flex flex-col gap-2.5 mt-2">
+            <h4 class="text-[10px] font-extrabold uppercase tracking-widest text-zinc-500">Vital Signs</h4>
+            <div id="patient-vitals-container" class="vitals-grid">
+                <!-- Vitals boxes will be injected here -->
+            </div>
+        </div>
+
+        <!-- Physical Exam Notes -->
+        <div class="flex flex-col gap-1.5 mt-2">
+            <h4 class="text-[10px] font-extrabold uppercase tracking-widest text-zinc-500">Clinical Exam / Labs</h4>
+            <p id="patient-exam" class="text-xs text-zinc-400 leading-relaxed font-medium bg-black/20 p-3 rounded-xl border border-white/5">
+                Exam text.
+            </p>
+        </div>
+    </div>
+
+    <!-- Right Column: Interactive Clinical Reasoning Steps -->
+    <div class="flex-1 flex flex-col gap-5 justify-center" id="reasoning-column">
+        <!-- Progress Steps Tracker -->
+        <div class="flex items-center justify-between text-xs text-zinc-500 uppercase tracking-widest font-semibold px-1">
+            <span id="case-stage-label">Diagnosis Phase</span>
+            <span id="case-progress-badge" class="text-purple-400 font-bold">Stage 1 of 3</span>
+        </div>
+
+        <!-- Question Card -->
+        <div class="flex flex-col gap-4" id="case-question-container">
+            <div class="glass-panel p-5 rounded-2xl border-l-4 border-purple-500 bg-zinc-950/10 flex flex-col gap-2">
+                <h3 id="case-question-text" class="text-xs md:text-sm font-bold text-white leading-relaxed">
+                    Question Content
+                </h3>
+            </div>
+
+            <!-- MCQ Answers container -->
+            <div class="flex flex-col gap-3" id="case-options-container">
+                <!-- MCQ buttons -->
+            </div>
+        </div>
+
+        <!-- Action / Rationale Details -->
+        <div id="case-action-panel" class="hidden glass-panel p-5 rounded-2xl flex flex-col gap-3 animate-fade-in border-zinc-800 bg-zinc-950/10">
+            <h4 id="case-action-status" class="text-xs font-bold uppercase tracking-wider">Action Result</h4>
+            <p id="case-rationale-text" class="text-xs text-zinc-400 leading-relaxed font-medium">
+                Clinical rationale.
+            </p>
+            <button 
+                id="next-stage-btn"
+                onclick="nextStage()"
+                class="w-full py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-xs font-bold text-white shadow-lg shadow-purple-500/20 transition-all cursor-pointer flex items-center justify-center gap-2"
+            >
+                Advance Case
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </button>
+        </div>
+
+        <!-- Resolution display -->
+        <div id="case-resolution" class="hidden flex flex-col items-center gap-4 text-center animate-fade-in p-4">
+            <div class="text-6xl animate-bounce">🏥</div>
+            <h2 class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-green-400 to-emerald-400">CASE RESOLVED</h2>
+            <p class="text-xs text-zinc-400 leading-relaxed max-w-sm">
+                Excellent clinical reasoning! The patient has been stabilized and is recovering under your care plan.
+            </p>
+            <button 
+                onclick="restartCase()"
+                class="px-6 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-800 text-xs font-bold text-white transition-all cursor-pointer mt-2"
+            >
+                Restart Case Study
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- SCRIPT -->
+<script>
+    document.getElementById('template-name-label').innerText = 'Clinical Case Study';
+
+    const patientProfile = VISUAL_DATA.patient_profile || {};
+    const questionsList = VISUAL_DATA.questions || [];
+
+    let currentStageIdx = 0;
+    let isStageOptionDisabled = false;
+
+    function initCase() {
+        if (questionsList.length === 0) {
+            document.getElementById('case-question-text').innerText = "No case study questions found in dataset.";
+            return;
+        }
+
+        currentStageIdx = 0;
+        isStageOptionDisabled = false;
+
+        // Render Patient Chart details
+        document.getElementById('patient-demographics').innerText = patientProfile.demographics || 'Unknown Patient';
+        document.getElementById('patient-presentation').innerText = patientProfile.presentation || 'No history provided.';
+        document.getElementById('patient-exam').innerText = patientProfile.exam || 'No exam logs provided.';
+
+        renderVitals();
+
+        // Show layouts
+        document.getElementById('case-resolution').classList.add('hidden');
+        document.getElementById('case-question-container').classList.remove('hidden');
+        document.getElementById('case-action-panel').classList.add('hidden');
+
+        loadStage();
+    }
+
+    function renderVitals() {
+        const vitalsContainer = document.getElementById('patient-vitals-container');
+        vitalsContainer.innerHTML = '';
+        
+        const vitalsStr = patientProfile.vitals || '';
+        // Parse "BP: 120/80 mmHg, HR: 72 bpm" style string into individual boxes
+        const vitalsList = vitalsStr.split(',').map(v => v.trim()).filter(Boolean);
+
+        vitalsList.forEach(vital => {
+            const parts = vital.split(':');
+            if (parts.length >= 2) {
+                const name = parts[0].trim();
+                const val = parts[1].trim();
+
+                const box = document.createElement('div');
+                box.className = 'vital-box flex flex-col justify-center';
+                box.innerHTML = `
+                    <span class="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">${name}</span>
+                    <span class="text-xs font-bold text-white mt-0.5">${val}</span>
+                `;
+                vitalsContainer.appendChild(box);
+            }
+        });
+
+        if (vitalsList.length === 0) {
+            vitalsContainer.innerHTML = `<span class="text-zinc-600 text-xs italic">No vitals on file</span>`;
+        }
+    }
+
+    function loadStage() {
+        isStageOptionDisabled = false;
+        document.getElementById('case-action-panel').classList.add('hidden');
+
+        const currentQ = questionsList[currentStageIdx];
+        
+        // Dynamic stage name label
+        const stageNames = ["Initial Assessment", "Diagnostic Investigation", "Therapeutic Intervention", "Maintenance Plan"];
+        const stageLabel = stageNames[currentStageIdx] || "Clinical Reasoning Step";
+        document.getElementById('case-stage-label').innerText = stageLabel;
+        document.getElementById('case-progress-badge').innerText = `Stage ${currentStageIdx + 1} of ${questionsList.length}`;
+
+        document.getElementById('case-question-text').innerText = currentQ.question;
+
+        const container = document.getElementById('case-options-container');
+        container.innerHTML = '';
+
+        currentQ.options.forEach((opt, idx) => {
+            const btn = document.createElement('button');
+            btn.setAttribute('class', 'glass-panel p-4 rounded-2xl text-left text-xs font-semibold hover:border-purple-500/50 hover:bg-purple-500/5 transition-all text-zinc-300 hover:text-white cursor-pointer select-none leading-relaxed flex items-center gap-3 bg-zinc-950/20');
+            btn.setAttribute('onclick', `selectStageOption(this, '${opt.replace(/'/g, "\\'")}')`);
+            
+            const letter = String.fromCharCode(65 + idx);
+            btn.innerHTML = `
+                <span class="flex-shrink-0 w-6 h-6 rounded-lg bg-zinc-900 border border-white/5 flex items-center justify-center font-bold text-[10px] text-zinc-400">
+                    ${letter}
+                </span>
+                <span class="flex-grow">${opt}</span>
+            `;
+            container.appendChild(btn);
+        });
+    }
+
+    function selectStageOption(btnElement, selectedOpt) {
+        if (isStageOptionDisabled) return;
+        isStageOptionDisabled = true;
+
+        const currentQ = questionsList[currentStageIdx];
+        const actionPanel = document.getElementById('case-action-panel');
+        const statusLabel = document.getElementById('case-action-status');
+        const rationaleText = document.getElementById('case-rationale-text');
+
+        // Disable hover styles on other buttons
+        const optionButtons = document.querySelectorAll('#case-options-container button');
+        optionButtons.forEach(btn => {
+            btn.classList.add('pointer-events-none');
+        });
+
+        const numBadge = btnElement.querySelector('span:first-child');
+
+        if (selectedOpt === currentQ.answer) {
+            // Correct choice
+            btnElement.style.borderColor = 'rgba(34, 197, 94, 0.4)';
+            btnElement.style.background = 'rgba(34, 197, 94, 0.04)';
+            btnElement.classList.add('text-green-400');
+            numBadge.style.borderColor = 'rgba(34, 197, 94, 0.4)';
+            numBadge.style.color = '#4ade80';
+            numBadge.style.background = 'rgba(34, 197, 94, 0.1)';
+
+            actionPanel.style.borderColor = 'rgba(34, 197, 94, 0.3)';
+            statusLabel.innerHTML = `<span class="text-green-400 font-bold tracking-wider">✔ Correct Decision</span>`;
+        } else {
+            // Incorrect choice
+            btnElement.style.borderColor = 'rgba(239, 68, 68, 0.4)';
+            btnElement.style.background = 'rgba(239, 68, 68, 0.04)';
+            btnElement.classList.add('text-red-400');
+            numBadge.style.borderColor = 'rgba(239, 68, 68, 0.4)';
+            numBadge.style.color = '#f87171';
+            numBadge.style.background = 'rgba(239, 68, 68, 0.1)';
+
+            // Find and highlight correct answer in green
+            optionButtons.forEach(btn => {
+                const optText = btn.querySelector('span:last-child').innerText;
+                if (optText === currentQ.answer) {
+                    btn.style.borderColor = 'rgba(34, 197, 94, 0.3)';
+                    btn.querySelector('span:first-child').style.borderColor = 'rgba(34, 197, 94, 0.3)';
+                    btn.querySelector('span:first-child').style.color = '#4ade80';
+                }
+            });
+
+            actionPanel.style.borderColor = 'rgba(239, 68, 68, 0.3)';
+            statusLabel.innerHTML = `<span class="text-red-400 font-bold tracking-wider">❌ Incorrect Clinical Decision</span>`;
+        }
+
+        // Show clinical reasoning details
+        actionPanel.classList.remove('hidden');
+        rationaleText.innerText = currentQ.rationale;
+    }
+
+    function nextStage() {
+        currentStageIdx++;
+        if (currentStageIdx < questionsList.length) {
+            loadStage();
+        } else {
+            // All stages resolved!
+            document.getElementById('case-question-container').classList.add('hidden');
+            document.getElementById('case-action-panel').classList.add('hidden');
+            document.getElementById('case-resolution').classList.remove('hidden');
+        }
+        setTimeout(() => window.reportHeight?.(), 100);
+    }
+
+    function restartCase() {
+        initCase();
+    }
+
+    // Initialize
+    initCase();
+</script>

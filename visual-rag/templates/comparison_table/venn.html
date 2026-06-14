@@ -1,0 +1,302 @@
+<!-- HEAD -->
+<style>
+    .venn-circle {
+        fill-opacity: 0.15;
+        stroke-width: 2.5px;
+        transition: fill-opacity 0.25s, stroke-width 0.25s, filter 0.25s;
+        cursor: pointer;
+    }
+    .venn-circle:hover {
+        fill-opacity: 0.28;
+        stroke-width: 4px;
+        filter: drop-shadow(0 0 8px var(--glow-color, rgba(255,255,255,0.2)));
+    }
+    .venn-intersection {
+        fill: #3f3f46;
+        fill-opacity: 0.2;
+        stroke: #71717a;
+        stroke-width: 1.5px;
+        stroke-dasharray: 4;
+        transition: fill-opacity 0.2s, stroke-width 0.2s;
+        cursor: pointer;
+    }
+    .venn-intersection:hover {
+        fill-opacity: 0.45;
+        stroke-width: 2.5px;
+        fill: var(--accent, #3b82f6);
+    }
+    .venn-label {
+        font-family: 'Outfit', sans-serif;
+        font-weight: 700;
+        fill: #ffffff;
+        pointer-events: none;
+        user-select: none;
+    }
+</style>
+
+<!-- BODY -->
+<div class="w-full flex flex-col md:flex-row gap-6 items-stretch animate-fade-in h-[580px]">
+    <!-- Venn Diagram SVG Canvas (Left) -->
+    <div class="flex-1 glass-panel rounded-2xl flex flex-col items-center justify-center p-4 relative overflow-hidden bg-zinc-950/10">
+        <h2 id="venn-title" class="text-base font-bold text-white absolute top-4 left-4">Venn Comparison</h2>
+        <div class="absolute top-4 right-4 text-[10px] text-zinc-500 pointer-events-none">
+            Click circle areas or intersections to explore details
+        </div>
+        
+        <svg id="venn-svg" class="w-full h-full max-h-[460px]" viewBox="0 0 800 500">
+            <!-- Venn circles and shapes will be drawn here -->
+        </svg>
+    </div>
+
+    <!-- Details Pane (Right) -->
+    <div class="w-full md:w-[320px] glass-panel rounded-2xl p-5 flex flex-col gap-4 overflow-y-auto bg-zinc-900/20 border-l border-zinc-800/40">
+        <div class="border-b border-zinc-800/60 pb-3">
+            <span id="selected-type-badge" class="px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase bg-blue-500/10 text-blue-400 border border-blue-500/20">Select an Area</span>
+            <h3 id="selected-title" class="text-base font-bold text-white mt-2">Traits & Details</h3>
+        </div>
+        
+        <div id="details-list" class="flex flex-col gap-3.5 text-xs text-zinc-400">
+            <!-- Click details list will go here -->
+            <div class="text-center py-12 text-zinc-500">
+                Click any part of the diagram to view comparisons, similarities, or unique features.
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- SCRIPT -->
+<script>
+    document.getElementById('template-name-label').innerText = 'Interactive Venn Diagram';
+
+    let selectedArea = null;
+
+    function renderVenn() {
+        const svg = document.getElementById('venn-svg');
+        svg.innerHTML = '';
+
+        const title = VISUAL_DATA.title || "Venn Comparison";
+        document.getElementById('venn-title').innerText = title;
+
+        const items = VISUAL_DATA.items || [];
+        const criteria = VISUAL_DATA.criteria || [];
+        const data = VISUAL_DATA.data || {};
+
+        if (items.length === 2) {
+            // 2-Way Venn Layout
+            const c1 = { cx: 320, cy: 250, r: 140, label: items[0], color: "var(--accent, #7c3aed)", glow: "rgba(124, 58, 237, 0.4)" };
+            const c2 = { cx: 480, cy: 250, r: 140, label: items[1], color: "#0d9488", glow: "rgba(13, 148, 136, 0.4)" };
+
+            // Draw link curves & regions
+            // Circle 1
+            const circle1 = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            circle1.setAttribute("cx", c1.cx);
+            circle1.setAttribute("cy", c1.cy);
+            circle1.setAttribute("r", c1.r);
+            circle1.setAttribute("class", "venn-circle");
+            circle1.setAttribute("stroke", c1.color);
+            circle1.setAttribute("fill", c1.color);
+            circle1.setAttribute("style", `--glow-color: ${c1.glow}`);
+            circle1.addEventListener('click', () => showDetails('unique', items[0]));
+            svg.appendChild(circle1);
+
+            // Circle 2
+            const circle2 = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            circle2.setAttribute("cx", c2.cx);
+            circle2.setAttribute("cy", c2.cy);
+            circle2.setAttribute("r", c2.r);
+            circle2.setAttribute("class", "venn-circle");
+            circle2.setAttribute("stroke", c2.color);
+            circle2.setAttribute("fill", c2.color);
+            circle2.setAttribute("style", `--glow-color: ${c2.glow}`);
+            circle2.addEventListener('click', () => showDetails('unique', items[1]));
+            svg.appendChild(circle2);
+
+            // Overlap region overlay (transparent clickable ellipse for simplicity)
+            const overlap = document.createElementNS("http://www.w3.org/2000/svg", "ellipse");
+            overlap.setAttribute("cx", 400);
+            overlap.setAttribute("cy", 250);
+            overlap.setAttribute("rx", 60);
+            overlap.setAttribute("ry", 95);
+            overlap.setAttribute("class", "venn-intersection");
+            overlap.addEventListener('click', () => showDetails('shared_all'));
+            svg.appendChild(overlap);
+
+            // Text labels for circles
+            const t1 = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            t1.setAttribute("x", 240);
+            t1.setAttribute("y", 255);
+            t1.setAttribute("text-anchor", "middle");
+            t1.setAttribute("class", "venn-label text-sm");
+            t1.textContent = c1.label;
+            svg.appendChild(t1);
+
+            const t2 = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            t2.setAttribute("x", 560);
+            t2.setAttribute("y", 255);
+            t2.setAttribute("text-anchor", "middle");
+            t2.setAttribute("class", "venn-label text-sm");
+            t2.textContent = c2.label;
+            svg.appendChild(t2);
+
+            const tOverlap = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            tOverlap.setAttribute("x", 400);
+            tOverlap.setAttribute("y", 254);
+            tOverlap.setAttribute("text-anchor", "middle");
+            tOverlap.setAttribute("class", "venn-label text-xs");
+            tOverlap.setAttribute("fill-opacity", "0.8");
+            tOverlap.textContent = "Overlap";
+            svg.appendChild(tOverlap);
+
+        } else {
+            // 3-Way Venn Layout (Fallback if >3 or 3 items)
+            // If items.length is not 3, cap to 3 for Venn
+            const count = Math.min(3, items.length);
+            const names = items.slice(0, 3);
+            if (names.length < 3) names.push("Item 3");
+
+            const colors = ["var(--accent, #7c3aed)", "#0d9488", "#d97706"];
+            const glows = ["rgba(124, 58, 237, 0.4)", "rgba(13, 148, 136, 0.4)", "rgba(217, 119, 6, 0.4)"];
+            const centers = [
+                { cx: 400, cy: 190, r: 120, label: names[0] }, // Top
+                { cx: 330, cy: 300, r: 120, label: names[1] }, // Left
+                { cx: 470, cy: 300, r: 120, label: names[2] }  // Right
+            ];
+
+            // Render circles
+            centers.forEach((c, idx) => {
+                const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                circle.setAttribute("cx", c.cx);
+                circle.setAttribute("cy", c.cy);
+                circle.setAttribute("r", c.r);
+                circle.setAttribute("class", "venn-circle");
+                circle.setAttribute("stroke", colors[idx]);
+                circle.setAttribute("fill", colors[idx]);
+                circle.setAttribute("style", `--glow-color: ${glows[idx]}`);
+                circle.addEventListener('click', () => showDetails('unique', names[idx]));
+                svg.appendChild(circle);
+            });
+
+            // Center triple overlap trigger
+            const overlap = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            overlap.setAttribute("cx", 400);
+            overlap.setAttribute("cy", 270);
+            overlap.setAttribute("r", 40);
+            overlap.setAttribute("class", "venn-intersection");
+            overlap.addEventListener('click', () => showDetails('shared_all'));
+            svg.appendChild(overlap);
+
+            // Labels
+            const offsets = [
+                { x: 400, y: 130 },
+                { x: 270, y: 340 },
+                { x: 530, y: 340 }
+            ];
+            centers.forEach((c, idx) => {
+                const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                text.setAttribute("x", offsets[idx].x);
+                text.setAttribute("y", offsets[idx].y);
+                text.setAttribute("text-anchor", "middle");
+                text.setAttribute("class", "venn-label text-xs");
+                text.textContent = c.label;
+                svg.appendChild(text);
+            });
+
+            const textShared = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            textShared.setAttribute("x", 400);
+            textShared.setAttribute("y", 273);
+            textShared.setAttribute("text-anchor", "middle");
+            textShared.setAttribute("class", "venn-label text-[10px]");
+            textShared.textContent = "Overlap";
+            svg.appendChild(textShared);
+        }
+    }
+
+    function showDetails(type, itemName) {
+        const badge = document.getElementById('selected-type-badge');
+        const titleElem = document.getElementById('selected-title');
+        const list = document.getElementById('details-list');
+
+        list.innerHTML = '';
+        const items = VISUAL_DATA.items || [];
+        const criteria = VISUAL_DATA.criteria || [];
+        const data = VISUAL_DATA.data || {};
+
+        if (type === 'unique') {
+            badge.innerText = "Unique Traits";
+            badge.className = "px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
+            titleElem.innerText = itemName;
+
+            // Find uniqueness
+            criteria.forEach(crit => {
+                const itemVal = (data[itemName] && data[itemName][crit]) || "";
+                
+                // Check if different from other items
+                let isDifferent = true;
+                items.forEach(other => {
+                    if (other !== itemName) {
+                        const otherVal = (data[other] && data[other][crit]) || "";
+                        if (itemVal.toLowerCase() === otherVal.toLowerCase()) {
+                            isDifferent = false;
+                        }
+                    }
+                });
+
+                if (isDifferent && itemVal) {
+                    addDetailItem(crit, itemVal);
+                }
+            });
+
+            if (list.innerHTML === '') {
+                list.innerHTML = `<div class="text-center py-6 text-zinc-500">No strictly unique values found for this item.</div>`;
+            }
+
+        } else if (type === 'shared_all') {
+            badge.innerText = "Shared Features";
+            badge.className = "px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase bg-blue-500/10 text-blue-400 border border-blue-500/20";
+            titleElem.innerText = "Common Overlaps";
+
+            // Find criteria where all items match
+            criteria.forEach(crit => {
+                let allMatch = true;
+                let firstVal = null;
+                
+                items.forEach((item, idx) => {
+                    const val = (data[item] && data[item][crit]) || "";
+                    if (idx === 0) {
+                        firstVal = val;
+                    } else if (val.toLowerCase() !== firstVal.toLowerCase()) {
+                        allMatch = false;
+                    }
+                });
+
+                if (allMatch && firstVal && items.length > 0) {
+                    addDetailItem(crit, firstVal);
+                }
+            });
+
+            if (list.innerHTML === '') {
+                // Fallback: show criteria with partial similarities
+                list.innerHTML = `<div class="text-zinc-500 text-xs">No perfectly matching similarities across all items. Showing general list:</div>`;
+                criteria.slice(0, 4).forEach(crit => {
+                    let desc = items.map(it => `${it}: ${(data[it] && data[it][crit]) || "—"}`).join(" | ");
+                    addDetailItem(crit, desc);
+                });
+            }
+        }
+    }
+
+    function addDetailItem(crit, val) {
+        const list = document.getElementById('details-list');
+        const item = document.createElement('div');
+        item.setAttribute('class', 'flex flex-col gap-1 border-b border-zinc-800/30 pb-2');
+        item.innerHTML = `
+            <span class="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">${crit}</span>
+            <span class="text-zinc-200 mt-0.5">${val}</span>
+        `;
+        list.appendChild(item);
+    }
+
+    renderVenn();
+    // Auto-select shared
+    showDetails('shared_all');
+</script>

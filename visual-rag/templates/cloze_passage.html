@@ -1,0 +1,156 @@
+<!-- HEAD -->
+<style>
+    .cloze-select {
+        background-color: rgba(255, 255, 255, 0.07);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        color: #ffffff;
+        border-radius: 0.5rem;
+        padding: 2px 6px;
+        font-family: inherit;
+        font-size: 0.9em;
+        cursor: pointer;
+        outline: none;
+        transition: border-color 0.2s;
+    }
+    .cloze-select:focus {
+        border-color: var(--accent, #7c3aed);
+    }
+    .cloze-correct {
+        border-color: #10b981 !important;
+        background-color: rgba(16, 185, 129, 0.15) !important;
+        color: #34d399 !important;
+    }
+    .cloze-incorrect {
+        border-color: #ef4444 !important;
+        background-color: rgba(239, 68, 68, 0.15) !important;
+        color: #f87171 !important;
+    }
+</style>
+
+<!-- BODY -->
+<div class="w-full max-w-2xl glass-panel p-6 rounded-2xl bg-zinc-950/20 shadow-2xl flex flex-col gap-6 animate-fade-in">
+    <!-- Header -->
+    <div class="border-b border-zinc-800/40 pb-3 flex justify-between items-center">
+        <div>
+            <h2 id="cloze-title" class="text-lg font-bold text-white">Cloze Passage</h2>
+            <p class="text-xs text-zinc-500 mt-0.5">Fill in the blanks to complete the concept</p>
+        </div>
+        <div id="score-badge" class="hidden px-2.5 py-1 rounded-lg text-xs font-bold bg-purple-500/10 text-purple-400 border border-purple-500/20">
+            0/0 Correct
+        </div>
+    </div>
+
+    <!-- Passage Content -->
+    <div id="passage-container" class="text-zinc-200 text-sm md:text-base leading-loose tracking-wide py-2">
+        <!-- Rendered text with inline select boxes will go here -->
+    </div>
+
+    <!-- Controls -->
+    <div class="flex items-center justify-between border-t border-zinc-800/40 pt-4">
+        <div class="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Word Bank: <span id="word-bank-text" class="text-zinc-400 font-medium normal-case"></span></div>
+        <div class="flex gap-2.5">
+            <button onclick="resetCloze()" class="glass-panel px-4 py-2 rounded-xl text-zinc-400 hover:text-white transition text-xs bg-zinc-900/30">Reset</button>
+            <button onclick="checkCloze()" class="px-4 py-2 rounded-xl text-white font-bold bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 transition text-xs shadow-lg shadow-purple-500/10">Check Answers</button>
+        </div>
+    </div>
+
+    <!-- Explanation Box (Reveals on check) -->
+    <div id="explanation-box" class="hidden glass-panel p-4 rounded-xl bg-purple-500/5 border border-purple-500/20 animate-fade-in">
+        <h4 class="text-xs font-bold text-purple-400 uppercase tracking-widest mb-1.5">Educational Insights</h4>
+        <p id="explanation-text" class="text-zinc-300 text-xs leading-relaxed"></p>
+    </div>
+</div>
+
+<!-- SCRIPT -->
+<script>
+    document.getElementById('template-name-label').innerText = 'Interactive Cloze Passage';
+
+    function renderCloze() {
+        const title = VISUAL_DATA.title || "Cloze Pathway Quiz";
+        document.getElementById('cloze-title').innerText = title;
+
+        const wordBank = VISUAL_DATA.word_bank || [];
+        document.getElementById('word-bank-text').innerText = wordBank.join(", ");
+
+        const passage = VISUAL_DATA.passage || "";
+        const container = document.getElementById('passage-container');
+        container.innerHTML = '';
+
+        // Parse passage text [[n]] and replace with select boxes
+        let htmlContent = passage;
+        const regex = /\[\[(\d+)\]\]/g;
+        
+        // Build options html
+        let optionsHtml = `<option value="">Select...</option>`;
+        wordBank.forEach(word => {
+            optionsHtml += `<option value="${word}">${word}</option>`;
+        });
+
+        // Replace tags with select elements
+        htmlContent = htmlContent.replace(regex, (match, blankId) => {
+            return `<select id="blank-${blankId}" class="cloze-select mx-1" data-blank-id="${blankId}">${optionsHtml}</select>`;
+        });
+
+        container.innerHTML = htmlContent;
+    }
+
+    function checkCloze() {
+        const blanks = VISUAL_DATA.blanks || {};
+        const selects = document.getElementsByClassName('cloze-select');
+        let correctCount = 0;
+        let totalCount = 0;
+
+        for (let i = 0; i < selects.length; i++) {
+            const select = selects[i];
+            const blankId = select.getAttribute('data-blank-id');
+            const userVal = select.value.trim().toLowerCase();
+            const correctVal = String(blanks[blankId]).trim().toLowerCase();
+
+            totalCount++;
+
+            select.classList.remove('cloze-correct', 'cloze-incorrect');
+            if (userVal === correctVal) {
+                select.classList.add('cloze-correct');
+                correctCount++;
+            } else if (userVal !== "") {
+                select.classList.add('cloze-incorrect');
+            }
+        }
+
+        // Show Score Badge
+        const scoreBadge = document.getElementById('score-badge');
+        scoreBadge.innerText = `${correctCount}/${totalCount} Correct (${Math.round((correctCount/totalCount)*100)}%)`;
+        scoreBadge.classList.remove('hidden');
+
+        // Reveal explanation
+        const expBox = document.getElementById('explanation-box');
+        const expText = document.getElementById('explanation-text');
+        
+        let insight = "Verify your answers against the word bank. Recall pathways step-by-step to lock them in long-term memory.";
+        if (correctCount === totalCount) {
+            insight = "🎉 Excellent! You have completely mastered this pathway and recalled every blank correctly.";
+        }
+        
+        // Stitch explanation values together
+        let correctList = [];
+        for (const [k, v] of Object.entries(blanks)) {
+            correctList.push(`[${k}] ${v}`);
+        }
+        insight += "<br/><br/><strong>Key Pathway Sequence:</strong><br/>" + correctList.join(" → ");
+
+        expText.innerHTML = insight;
+        expBox.classList.remove('hidden');
+    }
+
+    function resetCloze() {
+        const selects = document.getElementsByClassName('cloze-select');
+        for (let i = 0; i < selects.length; i++) {
+            selects[i].value = "";
+            selects[i].classList.remove('cloze-correct', 'cloze-incorrect');
+        }
+        document.getElementById('score-badge').classList.add('hidden');
+        document.getElementById('explanation-box').classList.add('hidden');
+    }
+
+    renderCloze();
+</script>

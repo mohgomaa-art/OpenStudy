@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html data-theme="clinical" lang="en" data-theme="clinical">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pediatric Bleeding Disorders Flashcards</title>
+    <style>
+        /* CSS Themes */
+        :root {
+            /* clinical (default) */
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --border: #e2e8f0;
+            --text: #0f172a;
+            --text-secondary: #64748b;
+            --accent: #2563eb;
+            --accent-soft: #dbeafe;
+            --accent-2: #0d9488;
+            --accent-2-soft: #ccfbf1;
+            --success: #16a34a;
+            --warning: #d97706;
+            --danger: #dc2626;
+        }
+        [data-theme="clinical"] {
+            --bg: #f8fafc; --surface: #ffffff; --border: #e2e8f0; --text: #0f172a; --text-secondary: #64748b; --accent: #2563eb; --accent-soft: #dbeafe; --accent-2: #0d9488; --accent-2-soft: #ccfbf1; --success: #16a34a; --warning: #d97706; --danger: #dc2626;
+        }
+        [data-theme="nightshift"] {
+            --bg: #0a0e17; --surface: #131a26; --border: rgba(255,255,255,0.08); --text: #e2e8f0; --text-secondary: #94a3b8; --accent: #38bdf8; --accent-soft: rgba(56,189,248,0.15); --accent-2: #a78bfa; --accent-2-soft: rgba(167,139,250,0.15); --success: #4ade80; --warning: #fbbf24; --danger: #f87171;
+        }
+        [data-theme="botanica"] {
+            --bg: #f6f8f1; --surface: #ffffff; --border: #dde6d5; --text: #2b3a26; --text-secondary: #6b7d63; --accent: #4d7c4a; --accent-soft: #e3ecdf; --accent-2: #c9852f; --accent-2-soft: #f6e6cf; --success: #4d7c4a; --warning: #c9852f; --danger: #b3473a;
+        }
+        [data-theme="bloom"] {
+            --bg: #fff5f7; --surface: #ffffff; --border: #fbd5e0; --text: #4a2540; --text-secondary: #9c7a8f; --accent: #ec4899; --accent-soft: #fce7f3; --accent-2: #14b8a6; --accent-2-soft: #ccfbf1; --success: #22c55e; --warning: #f59e0b; --danger: #e11d48;
+        }
+        [data-theme="solstice"] {
+            --bg: #fff8f0; --surface: #ffffff; --border: #fde4cf; --text: #3a2418; --text-secondary: #8a6a55; --accent: #f97316; --accent-soft: #ffedd5; --accent-2: #0ea5e9; --accent-2-soft: #e0f2fe; --success: #65a30d; --warning: #eab308; --danger: #dc2626;
+        }
+        [data-theme="arcane"] {
+            --bg: #0d0a1a; --surface: #1a1430; --border: rgba(167, 139, 250, 0.15); --text: #f1eaff; --text-secondary: #a89bc4; --accent: #c084fc; --accent-soft: rgba(192, 132, 252, 0.15); --accent-2: #2dd4bf; --accent-2-soft: rgba(45, 212, 191, 0.15); --success: #34d399; --warning: #fbbf24; --danger: #fb7185;
+        }
+
+        /* General Styling */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            line-height: 1.6;
+            box-sizing: border-box;
+        }
+
+        h1 {
+            color: var(--accent);
+            margin-bottom: 30px;
+            text-align: center;
+            font-size: 1.8em;
+        }
+
+        .flashcard-container {
+            perspective: 1000px;
+            width: 100%;
+            max-width: 700px;
+            height: 450px; /* Fixed height for flashcard */
+            margin-bottom: 30px;
+        }
+
+        .flashcard {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.6s;
+            cursor: pointer;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .flashcard.flipped {
+            transform: rotateY(180deg);
+        }
+
+        .flashcard-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 30px;
+            box-sizing: border-box;
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            overflow-y: auto; /* Allow scrolling for long content */
+        }
+        .flashcard-face::-webkit-scrollbar {
+            width: 8px;
+        }
+        .flashcard-face::-webkit-scrollbar-track {
+            background: var(--bg);
+            border-radius: 4px;
+        }
+        .flashcard-face::-webkit-scrollbar-thumb {
+            background: var(--accent-soft);
+            border-radius: 4px;
+        }
+        .flashcard-face::-webkit-scrollbar-thumb:hover {
+            background: var(--accent);
+        }
+
+        .flashcard-front {
+            z-index: 2;
+            transform: rotateY(0deg);
+            font-size: 1.8em;
+            font-weight: bold;
+            color: var(--accent);
+            text-align: center;
+        }
+
+        .flashcard-back {
+            transform: rotateY(180deg);
+            text-align: left;
+            font-size: 1em;
+            color: var(--text-secondary);
+        }
+
+        .flashcard-back h2 {
+            color: var(--accent-2);
+            font-size: 1.4em;
+            margin-top: 0;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        .flashcard-back h3 {
+            color: var(--accent);
+            font-size: 1.1em;
+            margin-top: 15px;
+            margin-bottom: 8px;
+        }
+        .flashcard-back p, .flashcard-back ul {
+            margin-bottom: 10px;
+            padding-left: 20px;
+            color: var(--text-secondary); /* Ensure secondary text for body */
+        }
+        .flashcard-back ul {
+            list-style-type: disc;
+        }
+        .flashcard-back ul li {
+            margin-bottom: 5px;
+        }
+        .flashcard-back strong {
+            color: var(--text); /* Strong text should be primary */
+        }
+        .flashcard-back .warning-box {
+            background-color: var(--warning);
+            color: var(--surface); /* Text on warning background */
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            font-weight: bold;
+            font-size: 0.95em;
+        }
+        .flashcard-back .warning-box strong {
+            color: var(--surface);
+        }
+
+        .navigation {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            margin-top: 20px;
+            width: 100%;
+            max-width: 700px;
+            justify-content: space-between;
+        }
+
+        .nav-button {
+            background-color: var(--accent);
+            color: var(--surface);
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            flex-grow: 1;
+            max-width: 150px;
+        }
+
+        .nav-button:hover {
+            background-color: var(--accent-2);
+        }
+
+        .nav-button:disabled {
+            background-color: var(--border);
+            cursor: not-allowed;
+            color: var(--text-secondary);
+        }
+
+        .card-counter {
+            font-size: 1.1em;
+            color: var(--text);
+            font-weight: 500;
+            flex-grow: 0;
+            white-space: nowrap;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 15px;
+            }
+            h1 {
+                font-size: 1.5em;
+                margin-bottom: 20px;
+            }
+            .flashcard-container {
+                height: 400px;
+            }
+            .flashcard-front {
+                font-size: 1.5em;
+            }
+            .flashcard-face {
+                padding: 20px;
+            }
+            .flashcard-back h2 {
+                font-size: 1.2em;
+            }
+            .flashcard-back h3 {
+                font-size: 1em;
+            }
+            .navigation {
+                flex-direction: row;
+                gap: 10px;
+                justify-content: space-around;
+            }
+            .nav-button {
+                padding: 10px 20px;
+                font-size: 0.9em;
+                max-width: 120px;
+            }
+            .card-counter {
+                font-size: 1em;
+            }
+        }
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 1.3em;
+            }
+            .flashcard-container {
+                height: 350px;
+            }
+            .flashcard-front {
+                font-size: 1.3em;
+            }
+            .flashcard-face {
+                padding: 15px;
+            }
+            .flashcard-back h2 {
+                font-size: 1.1em;
+            }
+            .flashcard-back h3 {
+                font-size: 0.95em;
+            }
+            .nav-button {
+                padding: 8px 15px;
+                font-size: 0.8em;
+            }
+            .card-counter {
+                font-size: 0.9em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Pediatric Bleeding Disorders Flashcards</h1>
+
+    <div class="flashcard-container">
+        <div class="flashcard" id="flashcard">
+            <div class="flashcard-face flashcard-front" id="card-front"></div>
+            <div class="flashcard-face flashcard-back" id="card-back"></div>
+        </div>
+    </div>
+
+    <div class="navigation">
+        <button id="prev-btn" class="nav-button" disabled>&larr; Previous</button>
+        <span id="card-counter" class="card-counter">1 / 1</span>
+        <button id="next-btn" class="nav-button">Next &rarr;</button>
+    </div>
+
+    <script>
+        const flashcardsData = [
+            {
+                front: "Hemophilia A (Factor VIII Deficiency)",
+                back: `
+                    <h2>Hemophilia A</h2>
+                    <h3>Presentation:</h3>
+                    <ul>
+                        <li><strong>Neonatal/Infancy:</strong> Umbilical cord bleeding, intracranial hemorrhage (ICH), excessive bleeding after circumcision, easy bruising.</li>
+                        <li><strong>Toddlers/Children:</strong> Hemarthrosis (joint bleeds, especially knees, elbows, ankles), muscle hematomas, prolonged bleeding after minor trauma or dental procedures.</li>
+                    </ul>
+                    <h3>Diagnosis:</h3>
+                    <ul>
+                        <li><strong>Screening Tests:</strong> Prolonged activated partial thromboplastin time (aPTT), normal prothrombin time (PT), normal bleeding time, normal platelet count.</li>
+                        <li><strong>Confirmatory Test:</strong> Decreased Factor VIII activity.</li>
+                        <li><strong>Severity Classification:</strong>
+                            <ul>
+                                <li><strong>Severe:</strong> Factor VIII &lt; 1%</li>
+                                <li><strong>Moderate:</strong> Factor VIII 1-5%</li>
+                                <li><strong>Mild:</strong> Factor VIII 6-40%</li>
+                            </ul>
+                        </li>
+                    </ul>
+                    <h3>Treatment:</h3>
+                    <ul>
+                        <li><strong>Acute Bleeds:</strong> Recombinant Factor VIII replacement, desmopressin (DDAVP) for mild cases.</li>
+                        <li><strong>Prophylaxis:</strong> Regular infusions of Factor VIII to prevent bleeds, especially in severe cases, often started in early childhood.</li>
+                        <li><strong>Complications:</strong> Development of inhibitors (antibodies to Factor VIII), chronic arthropathy from recurrent hemarthroses.</li>
+                    </ul>
+                `
+            },
+            {
+                front: "Hemophilia B (Factor IX Deficiency)",
+                back: `
+                    <h2>Hemophilia B</h2>
+                    <h3>Presentation:</h3>
+                    <ul>
+                        <li>Clinically indistinguishable from Hemophilia A; presents with similar bleeding patterns (hemarthrosis, muscle hematomas, prolonged bleeding) in infancy and childhood.</li>
+                    </ul>
+                    <h3>Diagnosis:</h3>
+                    <ul>
+                        <li><strong>Screening Tests:</strong> Prolonged aPTT, normal PT, normal bleeding time, normal platelet count.</li>
+                        <li><strong>Confirmatory Test:</strong> Decreased Factor IX activity.</li>
+                    </ul>
+                    <h3>Treatment:</h3>
+                    <ul>
+                        <li><strong>Acute Bleeds:</strong> Recombinant Factor IX replacement.</li>
+                        <li><strong>Prophylaxis:</strong> Regular infusions of Factor IX, especially for severe cases.</li>
+                    </ul>
+                `
+            },
+            {
+                front: "Von Willebrand Disease (VWD)",
+                back: `
+                    <h2>Von Willebrand Disease (VWD)</h2>
+                    <h3>Presentation:</h3>
+                    <ul>
+                        <li><strong>Childhood:</strong> Mucocutaneous bleeding (epistaxis, menorrhagia in adolescent girls, easy bruising, gingival bleeding), prolonged bleeding after surgery or trauma. Joint bleeds are less common than in hemophilia but can occur in severe forms.</li>
+                    </ul>
+                    <h3>Diagnosis:</h3>
+                    <ul>
+                        <li><strong>Initial Screening:</strong> May show prolonged bleeding time or prolonged aPTT (if Factor VIII is also low).</li>
+                        <li><strong>Confirmatory Tests:</strong>
+                            <ul>
+                                <li>Decreased von Willebrand factor (VWF) antigen.</li>
+                                <li>Decreased VWF ristocetin cofactor activity (VWF:RCo).</li>
+                                <li>Decreased Factor VIII activity.</li>
+                                <li>VWF multimer analysis to classify types.</li>
+                            </ul>
+                        </li>
+                    </ul>
+                    <h3>Treatment:</h3>
+                    <ul>
+                        <li><strong>Mild Bleeds/Prophylaxis:</strong> Desmopressin (DDAVP) for Type 1 VWD.</li>
+                        <li><strong>Moderate/Severe Bleeds:</strong> VWF-containing Factor VIII concentrates.</li>
+                        <li><strong>Adjunctive:</strong> Antifibrinolytics (e.g., tranexamic acid) for mucosal bleeding.</li>
+                    </ul>
+                `
+            },
+            {
+                front: "Immune Thrombocytopenic Purpura (ITP)",
+                back: `
+                    <h2>Immune Thrombocytopenic Purpura (ITP)</h2>
+                    <h3>Presentation:</h3>
+                    <ul>
+                        <li><strong>Often follows viral infection in children.</strong></li>
+                        <li>Petechiae, purpura, bruising, mucosal bleeding (epistaxis, gingival bleeding).</li>
+                        <li>Intracranial hemorrhage is rare but serious.</li>
+                    </ul>
+                    <h3>Diagnosis:</h3>
+                    <ul>
+                        <li><strong>Isolated thrombocytopenia</strong> (platelet count &lt; 100,000/µL) in an otherwise healthy child with no other obvious cause for thrombocytopenia.</li>
+                        <li>Bone marrow examination is usually not required unless atypical features are present.</li>
+                    </ul>
+                    <h3>Treatment:</h3>
+                    <ul>
+                        <li><strong>Observation:</strong> Many children with ITP recover spontaneously.</li>
+                        <li><strong>Corticosteroids:</strong> Prednisone or methylprednisolone.</li>
+                        <li><strong>Intravenous Immunoglobulin (IVIG):</strong> Used for more severe bleeding or very low platelet counts.</li>
+                        <li><strong>Anti-D immunoglobulin:</strong> For Rh-positive patients.</li>
+                        <li><strong>Splenectomy:</strong> Rarely indicated in chronic ITP refractory to other treatments in children.</li>
+                    </ul>
+                `
+            },
+            {
+                front: "Differentiating TTP and HUS in Pediatrics",
+                back: `
+                    <h2>TTP vs HUS in Pediatrics</h2>
+                    <div class="warning-box">
+                        <strong>WARNING:</strong> While both TTP and HUS involve thrombocytopenia and microangiopathic hemolytic anemia, HUS is more common in children, often triggered by Shiga toxin-producing E. coli (STEC) infection. TTP is rarer in children.
+                    </div>
+                    <h3>Hemolytic Uremic Syndrome (HUS):</h3>
+                    <ul>
+                        <li><strong>Cause:</strong> Typically associated with diarrheal illness (Shiga toxin-producing E. coli O157:H7).</li>
+                        <li><strong>Triad:</strong> Microangiopathic hemolytic anemia, thrombocytopenia, <strong>acute kidney injury (AKI)</strong>.</li>
+                        <li><strong>Prevalence:</strong> More common in children.</li>
+                    </ul>
+                    <h3>Thrombotic Thrombocytopenic Purpura (TTP):</h3>
+                    <ul>
+                        <li><strong>Cause:</strong> Deficiency of ADAMTS13 enzyme (either congenital or autoimmune).</li>
+                        <li><strong>Pentad (classic):</strong> Microangiopathic hemolytic anemia, thrombocytopenia, fever, neurological symptoms, renal impairment (less severe than HUS).</li>
+                        <li><strong>Prevalence:</strong> Rarer in children compared to adults.</li>
+                    </ul>
+                `
+            },
+            {
+                front: "Vitamin K Deficiency Bleeding (VKDB)",
+                back: `
+                    <h2>Vitamin K Deficiency Bleeding (VKDB)</h2>
+                    <h3>Presentation:</h3>
+                    <ul>
+                        <li><strong>Classic VKDB (2-7 days of life):</strong> Gastrointestinal bleeding, skin bruising, bleeding from circumcision or umbilical stump.</li>
+                        <li><strong>Late VKDB (2 weeks to 6 months):</strong> Often more severe, commonly presents with intracranial hemorrhage (ICH), which can lead to significant morbidity and mortality.</li>
+                    </ul>
+                    <h3>Diagnosis:</h3>
+                    <ul>
+                        <li><strong>Prolonged prothrombin time (PT)</strong>, often with a normal or mildly prolonged aPTT.</li>
+                        <li><strong>Low levels of Vitamin K-dependent clotting factors</strong> (II, VII, IX, X).</li>
+                        <li><strong>Elevated PIVKA-II</strong> (protein induced by vitamin K absence or antagonism-II) is diagnostic.</li>
+                    </ul>
+                    <h3>Treatment:</h3>
+                    <ul>
+                        <li><strong>Immediate administration of Vitamin K</strong> (intravenous or intramuscular) to correct coagulopathy.</li>
+                        <li><strong>Fresh frozen plasma (FFP)</strong> may be used in cases of severe bleeding to provide immediate clotting factors.</li>
+                        <li><strong>Prevention:</strong> Routine prophylactic administration of Vitamin K at birth.</li>
+                    </ul>
+                `
+            }
+        ];
+
+        let currentCardIndex = 0;
+        const flashcard = document.getElementById('flashcard');
+        const cardFront = document.getElementById('card-front');
+        const cardBack = document.getElementById('card-back');
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const cardCounter = document.getElementById('card-counter');
+
+        function showCard(index) {
+            currentCardIndex = index;
+            const card = flashcardsData[currentCardIndex];
+            cardFront.innerHTML = card.front;
+            cardBack.innerHTML = card.back;
+            
+            // Ensure card is unflipped when changing content
+            flashcard.classList.remove('flipped');
+
+            updateNavigation();
+        }
+
+        function updateNavigation() {
+            prevBtn.disabled = currentCardIndex === 0;
+            nextBtn.disabled = currentCardIndex === flashcardsData.length - 1;
+            cardCounter.textContent = `${currentCardIndex + 1} / ${flashcardsData.length}`;
+        }
+
+        function flipCard() {
+            flashcard.classList.toggle('flipped');
+        }
+
+        flashcard.addEventListener('click', flipCard);
+        prevBtn.addEventListener('click', () => {
+            if (currentCardIndex > 0) {
+                showCard(currentCardIndex - 1);
+            }
+        });
+        nextBtn.addEventListener('click', () => {
+            if (currentCardIndex < flashcardsData.length - 1) {
+                showCard(currentCardIndex + 1);
+            }
+        });
+
+        // Initial load
+        showCard(0);
+    </script>
+</body>
+</html>

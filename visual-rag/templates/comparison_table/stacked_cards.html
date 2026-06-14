@@ -1,0 +1,137 @@
+<!-- HEAD -->
+<style>
+    .item-card {
+        background: linear-gradient(135deg, rgba(20, 20, 25, 0.8), rgba(28, 25, 38, 0.8));
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-top: 3px solid var(--accent, #3b82f6);
+        transition: transform 0.2s, border-color 0.2s;
+    }
+    .item-card:hover {
+        transform: translateY(-2px);
+        border-color: var(--accent, #3b82f6);
+    }
+    .badge-positive {
+        background-color: rgba(16, 185, 129, 0.1);
+        color: rgb(52, 211, 153);
+        border: 1px solid rgba(16, 185, 129, 0.2);
+    }
+    .badge-negative {
+        background-color: rgba(244, 63, 94, 0.1);
+        color: rgb(251, 113, 133);
+        border: 1px solid rgba(244, 63, 94, 0.2);
+    }
+    .badge-neutral {
+        background-color: rgba(59, 130, 246, 0.1);
+        color: rgb(96, 165, 250);
+        border: 1px solid rgba(59, 130, 246, 0.2);
+    }
+</style>
+
+<!-- BODY -->
+<div class="w-full flex flex-col gap-6 animate-fade-in">
+    <!-- Header / Filter -->
+    <div class="w-full flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+            <h2 id="view-title" class="text-xl font-bold text-white">Comparison</h2>
+            <p class="text-xs text-zinc-500 mt-1">Responsive card view</p>
+        </div>
+        <div class="w-full max-w-xs flex gap-2">
+            <input type="text" id="search-input" oninput="filterCards()" placeholder="Search items..." class="w-full glass-panel px-4 py-2 rounded-xl text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-purple-500/50 bg-zinc-950/20 text-xs">
+        </div>
+    </div>
+
+    <!-- Cards Grid -->
+    <div id="cards-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
+        <!-- Generated cards will go here -->
+    </div>
+</div>
+
+<!-- SCRIPT -->
+<script>
+    document.getElementById('template-name-label').innerText = 'Stacked Cards Comparison';
+
+    function getBadgeClass(val) {
+        const text = String(val).toLowerCase();
+        if (text.includes("yes") || text.includes("present") || text.includes("positive") || 
+            text.includes("increase") || text.includes("stimulate") || text.includes("agonist")) {
+            return "badge-positive px-2 py-0.5 rounded text-[10px] font-semibold inline-block";
+        }
+        if (text.includes("no ") || text === "no" || text.includes("absent") || text.includes("negative") || 
+            text.includes("decrease") || text.includes("inhibit") || text.includes("block") || text.includes("antagonist")) {
+            return "badge-negative px-2 py-0.5 rounded text-[10px] font-semibold inline-block";
+        }
+        if (val.length < 30 && val.length > 2) {
+            return "badge-neutral px-2 py-0.5 rounded text-[10px] inline-block";
+        }
+        return "";
+    }
+
+    function renderCards() {
+        const container = document.getElementById('cards-grid');
+        container.innerHTML = '';
+        
+        const title = VISUAL_DATA.title || "Comparison Matrix";
+        document.getElementById('view-title').innerText = title;
+
+        const items = VISUAL_DATA.items || [];
+        const criteria = VISUAL_DATA.criteria || [];
+        const data = VISUAL_DATA.data || {};
+
+        items.forEach(item => {
+            const card = document.createElement('div');
+            card.setAttribute('class', 'item-card p-5 rounded-2xl shadow-xl flex flex-col gap-4');
+            card.setAttribute('data-name', item.toLowerCase());
+
+            // Header of Card
+            const header = document.createElement('div');
+            header.setAttribute('class', 'border-b border-zinc-800/40 pb-2');
+            header.innerHTML = `<h3 class="text-base font-bold text-white">${item}</h3>`;
+            card.appendChild(header);
+
+            // Body list of criteria
+            const list = document.createElement('div');
+            list.setAttribute('class', 'flex flex-col gap-3');
+
+            criteria.forEach(crit => {
+                const val = (data[item] && data[item][crit]) || "—";
+                const badgeClass = getBadgeClass(val);
+                
+                const row = document.createElement('div');
+                row.setAttribute('class', 'flex flex-col gap-1 text-xs');
+                
+                let valHtml = '';
+                if (badgeClass) {
+                    valHtml = `<span class="${badgeClass}">${val}</span>`;
+                } else {
+                    valHtml = `<span class="text-zinc-200 leading-relaxed">${val}</span>`;
+                }
+
+                row.innerHTML = `
+                    <span class="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">${crit}</span>
+                    <div class="mt-0.5">${valHtml}</div>
+                `;
+                list.appendChild(row);
+            });
+
+            card.appendChild(list);
+            container.appendChild(card);
+        });
+    }
+
+    function filterCards() {
+        const query = document.getElementById('search-input').value.toLowerCase();
+        const cards = document.getElementsByClassName('item-card');
+        
+        for (let i = 0; i < cards.length; i++) {
+            const card = cards[i];
+            const name = card.getAttribute('data-name');
+            if (name.includes(query)) {
+                card.style.display = 'flex';
+            } else {
+                card.style.display = 'none';
+            }
+        }
+    }
+
+    renderCards();
+</script>

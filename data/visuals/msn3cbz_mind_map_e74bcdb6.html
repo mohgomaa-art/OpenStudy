@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html data-theme="clinical">
+<head>
+    <meta charset="utf-8">
+    <title>OpenStudy Visualizer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        :root {
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --border: #e2e8f0;
+            --text: #0f172a;
+            --text-secondary: #64748b;
+            --accent: #2563eb;
+            --accent-soft: #dbeafe;
+            --accent-2: #0d9488;
+            --accent-2-soft: #ccfbf1;
+            --success: #16a34a;
+            --warning: #d97706;
+            --danger: #dc2626;
+
+            --node-stroke: #ffffff;
+            --link-opacity: 0.15;
+            --toolbar-bg: rgba(255, 255, 255, 0.8);
+            --btn-hover: rgba(0, 0, 0, 0.05);
+            --shadow: rgba(0, 0, 0, 0.05);
+        }
+
+        [data-theme="clinical"] {
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --border: #e2e8f0;
+            --text: #0f172a;
+            --text-secondary: #64748b;
+            --accent: #2563eb;
+            --accent-soft: #dbeafe;
+            --accent-2: #0d9488;
+            --accent-2-soft: #ccfbf1;
+            --success: #16a34a;
+            --warning: #d97706;
+            --danger: #dc2626;
+            --node-stroke: #ffffff;
+            --link-opacity: 0.15;
+            --toolbar-bg: rgba(255, 255, 255, 0.8);
+            --btn-hover: rgba(0, 0, 0, 0.05);
+            --shadow: rgba(0, 0, 0, 0.05);
+        }
+
+        [data-theme="nightshift"] {
+            --bg: #0a0e17;
+            --surface: #131a26;
+            --border: rgba(255, 255, 255, 0.08);
+            --text: #e2e8f0;
+            --text-secondary: #94a3b8;
+            --accent: #38bdf8;
+            --accent-soft: rgba(56, 189, 248, 0.15);
+            --accent-2: #a78bfa;
+            --accent-2-soft: rgba(167, 139, 250, 0.15);
+            --success: #4ade80;
+            --warning: #fbbf24;
+            --danger: #f87171;
+            --node-stroke: #0a0e17;
+            --link-opacity: 0.25;
+            --toolbar-bg: rgba(19, 26, 38, 0.8);
+            --btn-hover: rgba(255, 255, 255, 0.06);
+            --shadow: rgba(0, 0, 0, 0.3);
+        }
+
+        [data-theme="botanica"] {
+            --bg: #f6f8f1;
+            --surface: #ffffff;
+            --border: #dde6d5;
+            --text: #2b3a26;
+            --text-secondary: #6b7d63;
+            --accent: #4d7c4a;
+            --accent-soft: #e3ecdf;
+            --accent-2: #c9852f;
+            --accent-2-soft: #f6e6cf;
+            --success: #4d7c4a;
+            --warning: #c9852f;
+            --danger: #b3473a;
+            --node-stroke: #ffffff;
+            --link-opacity: 0.15;
+            --toolbar-bg: rgba(255, 255, 255, 0.8);
+            --btn-hover: rgba(0, 0, 0, 0.05);
+            --shadow: rgba(43, 58, 38, 0.05);
+        }
+
+        [data-theme="bloom"] {
+            --bg: #fff5f7;
+            --surface: #ffffff;
+            --border: #fbd5e0;
+            --text: #4a2540;
+            --text-secondary: #9c7a8f;
+            --accent: #ec4899;
+            --accent-soft: #fce7f3;
+            --accent-2: #14b8a6;
+            --accent-2-soft: #ccfbf1;
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --danger: #e11d48;
+            --node-stroke: #ffffff;
+            --link-opacity: 0.15;
+            --toolbar-bg: rgba(255, 255, 255, 0.8);
+            --btn-hover: rgba(0, 0, 0, 0.05);
+            --shadow: rgba(74, 37, 64, 0.05);
+        }
+
+        [data-theme="solstice"] {
+            --bg: #fff8f0;
+            --surface: #ffffff;
+            --border: #fde4cf;
+            --text: #3a2418;
+            --text-secondary: #8a6a55;
+            --accent: #f97316;
+            --accent-soft: #ffedd5;
+            --accent-2: #0ea5e9;
+            --accent-2-soft: #e0f2fe;
+            --success: #65a30d;
+            --warning: #eab308;
+            --danger: #dc2626;
+            --node-stroke: #ffffff;
+            --link-opacity: 0.15;
+            --toolbar-bg: rgba(255, 255, 255, 0.8);
+            --btn-hover: rgba(0, 0, 0, 0.05);
+            --shadow: rgba(58, 36, 24, 0.05);
+        }
+
+        [data-theme="arcane"] {
+            --bg: #0d0a1a;
+            --surface: #1a1430;
+            --border: rgba(167, 139, 250, 0.15);
+            --text: #f1eaff;
+            --text-secondary: #a89bc4;
+            --accent: #c084fc;
+            --accent-soft: rgba(192, 132, 252, 0.15);
+            --accent-2: #2dd4bf;
+            --accent-2-soft: rgba(45, 212, 191, 0.15);
+            --success: #34d399;
+            --warning: #fbbf24;
+            --danger: #fb7185;
+            --node-stroke: #0d0a1a;
+            --link-opacity: 0.3;
+            --toolbar-bg: rgba(26, 20, 48, 0.8);
+            --btn-hover: rgba(255, 255, 255, 0.06);
+            --shadow: rgba(0, 0, 0, 0.4);
+        }
+
+        body {
+            background: var(--bg);
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Inter', -apple-system, sans-serif;
+            color: var(--text);
+            transition: background 0.3s ease;
+        }
+
+        /* Links styling */
+        .link {
+            stroke: var(--text-secondary);
+            stroke-opacity: var(--link-opacity);
+            stroke-width: 1.5px;
+            transition: stroke 0.3s, stroke-opacity 0.3s;
+        }
+
+        /* Nodes styling */
+        .node circle {
+            stroke: var(--node-stroke);
+            stroke-width: 2px;
+            cursor: pointer;
+            transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), fill 0.3s, stroke 0.3s;
+        }
+
+        .node:hover circle {
+            transform: scale(1.15);
+            filter: drop-shadow(0 4px 8px var(--shadow));
+        }
+
+        /* Dynamic styling by levels */
+        .node.level-0 circle {
+            fill: var(--accent);
+        }
+        .node.level-1 circle {
+            fill: var(--accent-2);
+        }
+        .node.level-2 circle {
+            fill: var(--accent-soft);
+            stroke: var(--accent);
+            stroke-width: 1.5px;
+        }
+
+        /* Node labels */
+        .node text {
+            fill: var(--text);
+            font-size: 11px;
+            font-weight: 500;
+            pointer-events: none;
+            text-anchor: middle;
+            font-family: 'Inter', sans-serif;
+            transition: fill 0.3s;
+        }
+        
+        .node.level-0 text {
+            font-size: 13px;
+            font-weight: 700;
+            fill: var(--surface);
+        }
+        
+        .node.level-1 text {
+            font-size: 11.5px;
+            font-weight: 600;
+            fill: var(--surface);
+        }
+
+        /* Glassmorphic toolbar control */
+        .toolbar {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--toolbar-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            padding: 8px 16px;
+            border-radius: 40px;
+            display: flex;
+            gap: 8px;
+            border: 1px solid var(--border);
+            box-shadow: 0 10px 30px -10px var(--shadow);
+            transition: background 0.3s, border 0.3s;
+        }
+
+        button {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 6px 14px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        button:hover {
+            background: var(--btn-hover);
+            border-color: var(--text-secondary);
+            transform: translateY(-1px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body>
+    <svg id="mindmap" width="100%" height="100vh"></svg>
+    <div class="toolbar">
+        <button onclick="zoomIn()">Zoom +</button>
+        <button onclick="zoomOut()">Zoom -</button>
+        <button onclick="resetZoom()">Reset</button>
+    </div>
+    <script>
+        const data = {"nodes": [{"id": "root", "label": "Bleeding Disorders Pediatrics", "level": 0}, {"id": "b0", "label": "Overview", "level": 1}, {"id": "b0_0", "label": "Bleeding Disorders Pediatrics", "level": 2}], "links": [{"source": "root", "target": "b0"}, {"source": "b0", "target": "b0_0"}]};
+        const svg = d3.select("#mindmap");
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+        
+        const g = svg.append("g");
+        const zoom = d3.zoom()
+            .scaleExtent([0.1, 4])
+            .on("zoom", (e) => g.attr("transform", e.transform));
+        svg.call(zoom);
+
+        const simulation = d3.forceSimulation(data.nodes)
+            .force("link", d3.forceLink(data.links).id(d => d.id).distance(d => {
+                return d.source.level === 0 ? 140 : 90;
+            }))
+            .force("charge", d3.forceManyBody().strength(d => {
+                return d.level === 0 ? -600 : -350;
+            }))
+            .force("center", d3.forceCenter(width / 2, height / 2))
+            .force("collision", d3.forceCollide().radius(d => {
+                return d.level === 0 ? 50 : 35;
+            }));
+
+        const link = g.append("g").attr("class", "links")
+            .selectAll("line").data(data.links).enter().append("line").attr("class", "link");
+
+        const node = g.append("g").attr("class", "nodes")
+            .selectAll("g").data(data.nodes).enter().append("g")
+            .attr("class", d => `node level-${d.level}`)
+            .call(d3.drag().on("start", dragstarted).on("drag", dragged).on("end", dragended));
+
+        node.append("circle").attr("r", d => {
+            if (d.level === 0) return 40;
+            if (d.level === 1) return 26;
+            return 14;
+        });
+        
+        node.append("text")
+            .attr("dy", d => d.level === 2 ? 26 : 4) // Put leaf labels below the small nodes
+            .text(d => d.label);
+
+        simulation.on("tick", () => {
+            link.attr("x1", d => d.source.x).attr("y1", d => d.source.y)
+                .attr("x2", d => d.target.x).attr("y2", d => d.target.y);
+            node.attr("transform", d => `translate(${d.x}, ${d.y})`);
+        });
+
+        function dragstarted(event, d) {
+            if (!event.active) simulation.alphaTarget(0.3).restart();
+            d.fx = d.x;
+            d.fy = d.y;
+        }
+        
+        function dragged(event, d) {
+            d.fx = event.x;
+            d.fy = event.y;
+        }
+        
+        function dragended(event, d) {
+            if (!event.active) simulation.alphaTarget(0);
+            d.fx = null;
+            d.fy = null;
+        }
+        
+        function zoomIn() { svg.transition().duration(250).call(zoom.scaleBy, 1.3); }
+        function zoomOut() { svg.transition().duration(250).call(zoom.scaleBy, 0.7); }
+        function resetZoom() { svg.transition().duration(350).call(zoom.transform, d3.zoomIdentity); }
+    </script>
+</body>
+</html>

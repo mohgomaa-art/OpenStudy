@@ -1,0 +1,247 @@
+<!-- HEAD -->
+<style>
+    .seq-item {
+        cursor: grab;
+        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .seq-item:active {
+        cursor: grabbing;
+    }
+    .seq-item.dragging {
+        opacity: 0.4;
+        transform: scale(0.98);
+        border-color: rgba(168, 85, 247, 0.5);
+    }
+    .seq-item.drag-over {
+        border-color: rgba(168, 85, 247, 0.8);
+        background: rgba(168, 85, 247, 0.05);
+    }
+    .success-pulse {
+        animation: successGlow 1.5s infinite alternate;
+    }
+    @keyframes successGlow {
+        from { box-shadow: 0 0 10px rgba(34, 197, 94, 0.2); }
+        to { box-shadow: 0 0 25px rgba(34, 197, 94, 0.6); }
+    }
+</style>
+
+<!-- BODY -->
+<div class="w-full max-w-2xl flex flex-col gap-6 animate-fade-in">
+    <!-- Instructions Card -->
+    <div class="glass-panel p-5 rounded-2xl flex flex-col gap-2 border-l-4 border-purple-500">
+        <h3 class="text-sm font-bold text-white uppercase tracking-wider">Instructions</h3>
+        <p class="text-xs text-zinc-400 leading-relaxed">
+            The steps of this process are scrambled. Drag and drop the cards to arrange them into the correct chronological order, then click <strong>Check Sequence</strong> to verify.
+        </p>
+    </div>
+
+    <!-- Sequencing Container -->
+    <div id="sequence-container" class="flex flex-col gap-3.5">
+        <!-- Scrambled steps will go here -->
+    </div>
+
+    <!-- Control Buttons -->
+    <div class="flex items-center justify-between gap-4 mt-2">
+        <button 
+            id="reset-btn"
+            onclick="resetSequence()"
+            class="px-5 py-2.5 rounded-xl border border-zinc-800 hover:border-zinc-700 text-xs font-semibold text-zinc-400 hover:text-white transition-all cursor-pointer"
+        >
+            Reset Order
+        </button>
+        <button 
+            id="check-btn"
+            onclick="checkSequence()"
+            class="px-6 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-xs font-bold text-white shadow-lg shadow-purple-500/20 transition-all cursor-pointer"
+        >
+            Check Sequence
+        </button>
+    </div>
+
+    <!-- Message / Feedback Banner -->
+    <div id="feedback-banner" class="hidden glass-panel p-4 rounded-xl text-center text-xs font-semibold animate-fade-in"></div>
+</div>
+
+<!-- SCRIPT -->
+<script>
+    document.getElementById('template-name-label').innerText = 'Sequence Builder';
+
+    let originalSteps = [];
+    let currentStepsOrder = [];
+
+    function initSequence() {
+        // deep copy steps
+        originalSteps = JSON.parse(JSON.stringify(VISUAL_DATA.steps || []));
+        
+        // Add original correct order index
+        originalSteps.forEach((step, idx) => {
+            if (!step.id) step.id = idx + 1;
+        });
+
+        // Scramble steps for the initial UI state
+        scrambleAndRender();
+    }
+
+    function scrambleAndRender() {
+        // Scramble logic
+        currentStepsOrder = [...originalSteps].sort(() => Math.random() - 0.5);
+        renderSteps();
+        
+        // Hide feedback
+        const banner = document.getElementById('feedback-banner');
+        banner.classList.add('hidden');
+    }
+
+    function renderSteps() {
+        const container = document.getElementById('sequence-container');
+        container.innerHTML = '';
+
+        currentStepsOrder.forEach((step, index) => {
+            const card = document.createElement('div');
+            card.setAttribute('class', 'seq-item glass-panel p-4 rounded-xl flex items-center gap-4 bg-zinc-950/20');
+            card.setAttribute('draggable', 'true');
+            card.setAttribute('data-id', step.id);
+            card.setAttribute('data-index', index);
+
+            // Drag event listeners
+            card.addEventListener('dragstart', handleDragStart);
+            card.addEventListener('dragover', handleDragOver);
+            card.addEventListener('dragleave', handleDragLeave);
+            card.addEventListener('drop', handleDrop);
+            card.addEventListener('dragend', handleDragEnd);
+
+            card.innerHTML = `
+                <div class="flex-shrink-0 w-8 h-8 rounded-lg bg-zinc-900 border border-white/5 flex items-center justify-center text-xs text-zinc-500 font-mono seq-number-badge">
+                    ${index + 1}
+                </div>
+                <div class="flex-grow text-xs text-zinc-300 font-medium leading-relaxed seq-text">
+                    ${step.text}
+                </div>
+                <div class="flex-shrink-0 text-zinc-600 hover:text-zinc-400 cursor-grab">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="9" cy="5" r="1"/>
+                        <circle cx="9" cy="12" r="1"/>
+                        <circle cx="9" cy="19" r="1"/>
+                        <circle cx="15" cy="5" r="1"/>
+                        <circle cx="15" cy="12" r="1"/>
+                        <circle cx="15" cy="19" r="1"/>
+                    </svg>
+                </div>
+            `;
+            container.appendChild(card);
+        });
+    }
+
+    // Drag and Drop State variables
+    let dragSrcElement = null;
+
+    function handleDragStart(e) {
+        this.classList.add('dragging');
+        dragSrcElement = this;
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', this.getAttribute('data-index'));
+    }
+
+    function handleDragOver(e) {
+        if (e.preventDefault) {
+            e.preventDefault();
+        }
+        this.classList.add('drag-over');
+        e.dataTransfer.dropEffect = 'move';
+        return false;
+    }
+
+    function handleDragLeave(e) {
+        this.classList.remove('drag-over');
+    }
+
+    function handleDrop(e) {
+        e.stopPropagation();
+        e.preventDefault();
+
+        this.classList.remove('drag-over');
+        
+        const srcIndex = parseInt(e.dataTransfer.getData('text/plain'));
+        const targetIndex = parseInt(this.getAttribute('data-index'));
+
+        if (srcIndex !== targetIndex) {
+            // Swap items in currentStepsOrder
+            const temp = currentStepsOrder[srcIndex];
+            currentStepsOrder.splice(srcIndex, 1);
+            currentStepsOrder.splice(targetIndex, 0, temp);
+            
+            // Re-render
+            renderSteps();
+        }
+        return false;
+    }
+
+    function handleDragEnd(e) {
+        this.classList.remove('dragging');
+        
+        // Clean up remaining classes
+        const items = document.querySelectorAll('.seq-item');
+        items.forEach(item => {
+            item.classList.remove('drag-over');
+        });
+    }
+
+    function checkSequence() {
+        const items = document.querySelectorAll('.seq-item');
+        let allCorrect = true;
+        
+        // Find correct order based on original sorted by id
+        const correctOrder = [...originalSteps].sort((a, b) => a.id - b.id);
+
+        items.forEach((item, idx) => {
+            const stepId = parseInt(item.getAttribute('data-id'));
+            const correctStep = correctOrder[idx];
+            
+            const numBadge = item.querySelector('.seq-number-badge');
+            
+            if (stepId === correctStep.id) {
+                // Correct
+                item.style.borderColor = 'rgba(34, 197, 94, 0.4)';
+                item.style.background = 'rgba(34, 197, 94, 0.04)';
+                numBadge.style.borderColor = 'rgba(34, 197, 94, 0.4)';
+                numBadge.style.color = '#4ade80';
+                numBadge.style.background = 'rgba(34, 197, 94, 0.1)';
+            } else {
+                // Incorrect
+                allCorrect = false;
+                item.style.borderColor = 'rgba(239, 68, 68, 0.4)';
+                item.style.background = 'rgba(239, 68, 68, 0.04)';
+                numBadge.style.borderColor = 'rgba(239, 68, 68, 0.4)';
+                numBadge.style.color = '#f87171';
+                numBadge.style.background = 'rgba(239, 68, 68, 0.1)';
+            }
+        });
+
+        const banner = document.getElementById('feedback-banner');
+        banner.classList.remove('hidden');
+        
+        if (allCorrect) {
+            banner.innerHTML = `<span class="text-green-400">🎉 Excellent! The biological/clinical sequence is 100% correct!</span>`;
+            banner.style.borderColor = 'rgba(34, 197, 94, 0.3)';
+            banner.style.background = 'rgba(34, 197, 94, 0.08)';
+            
+            // Add success glow class
+            document.getElementById('sequence-container').classList.add('success-pulse');
+        } else {
+            banner.innerHTML = `<span class="text-red-400">❌ Some steps are out of order. Drag cards to re-arrange and try again.</span>`;
+            banner.style.borderColor = 'rgba(239, 68, 68, 0.3)';
+            banner.style.background = 'rgba(239, 68, 68, 0.08)';
+            
+            document.getElementById('sequence-container').classList.remove('success-pulse');
+        }
+    }
+
+    function resetSequence() {
+        document.getElementById('sequence-container').classList.remove('success-pulse');
+        scrambleAndRender();
+    }
+
+    // Initialize
+    initSequence();
+</script>

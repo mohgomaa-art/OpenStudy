@@ -1,0 +1,166 @@
+<!-- HEAD -->
+<style>
+    .hotspot-dot {
+        position: absolute;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background-color: var(--accent, #e11d48);
+        border: 2px solid #ffffff;
+        transform: translate(-50%, -50%);
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+        z-index: 20;
+    }
+    .hotspot-dot:hover {
+        transform: translate(-50%, -50%) scale(1.25);
+        box-shadow: 0 0 14px var(--accent-glow, rgba(225, 29, 72, 0.6));
+    }
+    .hotspot-pulse {
+        position: absolute;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        border: 1.5px solid var(--accent, #e11d48);
+        transform: translate(-50%, -50%);
+        pointer-events: none;
+        animation: pulseScale 1.8s infinite ease-out;
+        z-index: 10;
+    }
+    @keyframes pulseScale {
+        0% { transform: translate(-50%, -50%) scale(0.6); opacity: 1; }
+        100% { transform: translate(-50%, -50%) scale(1.6); opacity: 0; }
+    }
+    .hotspot-dot.selected {
+        background-color: #ffffff !important;
+        border-color: var(--accent, #e11d48) !important;
+        box-shadow: 0 0 14px var(--accent-glow, rgba(225, 29, 72, 0.6));
+    }
+</style>
+
+<!-- BODY -->
+<div class="w-full flex flex-col md:flex-row gap-6 items-stretch animate-fade-in h-[580px]">
+    <!-- Image Canvas (Left) -->
+    <div class="flex-1 glass-panel rounded-2xl flex flex-col items-center justify-center p-4 relative overflow-hidden bg-zinc-950/20">
+        <h2 id="view-title" class="text-base font-bold text-white absolute top-4 left-4">Anatomical Identification</h2>
+        <div class="absolute top-4 right-4 text-[10px] text-zinc-500 pointer-events-none">
+            Click hot zones to identify structures
+        </div>
+
+        <!-- Relative Image wrapper container -->
+        <div id="image-container" class="relative w-full max-w-[500px] aspect-video border border-zinc-800/40 rounded-xl overflow-hidden shadow-2xl bg-zinc-900 flex items-center justify-center mt-6">
+            <!-- Dynamic Image or Fallback SVG -->
+            <img id="anatomy-img" src="" alt="Anatomy Slide" class="w-full h-full object-cover hidden" onerror="showFallbackSVG()">
+            <div id="fallback-svg-box" class="w-full h-full flex flex-col items-center justify-center text-zinc-600 bg-zinc-950 p-6">
+                <!-- Premium fallback SVG grid representing cellular/organ outline -->
+                <svg class="w-24 h-24 text-zinc-800 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path>
+                </svg>
+                <span class="text-xs font-bold text-zinc-500 uppercase tracking-wider">Anatomy Slide Map</span>
+            </div>
+            
+            <!-- Hotspots overlays wrapper -->
+            <div id="hotspots-overlay" class="absolute inset-0 w-full h-full pointer-events-auto"></div>
+        </div>
+    </div>
+
+    <!-- Details Sidebar (Right) -->
+    <div class="w-full md:w-[320px] glass-panel rounded-2xl p-5 flex flex-col gap-4 overflow-y-auto bg-zinc-900/20 border-l border-zinc-800/40">
+        <div class="border-b border-zinc-800/60 pb-3">
+            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase bg-red-500/10 text-red-400 border border-red-500/20">Identified Structure</span>
+            <h3 id="details-name" class="text-base font-bold text-white mt-2">Structure Details</h3>
+        </div>
+
+        <div id="details-content" class="text-xs text-zinc-400 leading-relaxed flex flex-col gap-3">
+            <div class="text-center py-12 text-zinc-500">
+                Click any pulsing hot zone on the image map to load details and clinical insights.
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- SCRIPT -->
+<script>
+    document.getElementById('template-name-label').innerText = 'Interactive Hotspots Image';
+
+    function renderHotspots() {
+        const title = VISUAL_DATA.title || "Anatomical Image Map";
+        document.getElementById('view-title').innerText = title;
+
+        const path = VISUAL_DATA.image_path || "";
+        const img = document.getElementById('anatomy-img');
+        const svgBox = document.getElementById('fallback-svg-box');
+
+        if (path) {
+            // Attempt to load via backend download route
+            img.src = `http://localhost:8000/api/rag/download?path=${encodeURIComponent(path)}`;
+            img.classList.remove('hidden');
+            svgBox.classList.add('hidden');
+        } else {
+            showFallbackSVG();
+        }
+
+        // Render hotspot dots
+        const overlay = document.getElementById('hotspots-overlay');
+        overlay.innerHTML = '';
+
+        const hotspots = VISUAL_DATA.hotspots || [];
+        hotspots.forEach((hs, idx) => {
+            // Pulsing Ring
+            const pulse = document.createElement('div');
+            pulse.className = 'hotspot-pulse';
+            pulse.style.left = `${hs.x}%`;
+            pulse.style.top = `${hs.y}%`;
+            overlay.appendChild(pulse);
+
+            // Active Dot Trigger
+            const dot = document.createElement('div');
+            dot.className = 'hotspot-dot';
+            dot.id = `dot-${idx}`;
+            dot.style.left = `${hs.x}%`;
+            dot.style.top = `${hs.y}%`;
+            dot.addEventListener('click', () => loadHotspotDetails(idx));
+            
+            const titleTag = document.createElement('title');
+            titleTag.textContent = hs.label;
+            dot.appendChild(titleTag);
+
+            overlay.appendChild(dot);
+        });
+    }
+
+    function showFallbackSVG() {
+        const img = document.getElementById('anatomy-img');
+        const svgBox = document.getElementById('fallback-svg-box');
+        img.classList.add('hidden');
+        svgBox.classList.remove('hidden');
+    }
+
+    function loadHotspotDetails(idx) {
+        const hotspots = VISUAL_DATA.hotspots || [];
+        const hs = hotspots[idx];
+        if (!hs) return;
+
+        // Toggle selected state
+        const dots = document.getElementsByClassName('hotspot-dot');
+        for (let i = 0; i < dots.length; i++) {
+            dots[i].classList.remove('selected');
+        }
+        document.getElementById(`dot-${idx}`).classList.add('selected');
+
+        // Render Details
+        document.getElementById('details-name').innerText = hs.label;
+        
+        const content = document.getElementById('details-content');
+        content.innerHTML = `
+            <p class="text-zinc-300 leading-relaxed text-xs">${hs.description}</p>
+            <div class="mt-4 border-t border-zinc-800/40 pt-3 flex flex-col gap-2 bg-zinc-950/20 p-3 rounded-xl border">
+                <span class="text-[9px] text-zinc-500 font-bold uppercase tracking-wider">Spatial Coordinate</span>
+                <span class="text-[10px] text-zinc-400">Position Map: X ${hs.x}% · Y ${hs.y}%</span>
+            </div>
+        `;
+        if (window.renderMath) window.renderMath();
+    }
+
+    renderHotspots();
+</script>

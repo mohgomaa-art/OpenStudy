@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neural Sphere | Audio Visualizer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #050505;
+            color: white;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+        #canvas-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 1;
+        }
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            pointer-events: none; /* Let clicks pass through to canvas if needed */
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 2rem;
+        }
+        .glass-panel {
+            background: rgba(20, 20, 25, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            pointer-events: auto; /* Re-enable pointer events for UI panels */
+        }
+        .btn {
+            transition: all 0.2s ease;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px -10px rgba(0, 255, 255, 0.5);
+        }
+        .btn:active {
+            transform: translateY(0);
+        }
+        /* Custom Audio Player Styling */
+        audio {
+            width: 100%;
+            height: 40px;
+            outline: none;
+            border-radius: 8px;
+        }
+        audio::-webkit-media-controls-panel {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        audio::-webkit-media-controls-current-time-display,
+        audio::-webkit-media-controls-time-remaining-display {
+            color: white;
+        }
+    </style>
+
+    <!-- Import maps for modern Three.js modules -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.150.1/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.150.1/examples/jsm/",
+                "simplex-noise": "https://unpkg.com/simplex-noise@4.0.1/dist/esm/simplex-noise.js"
+            }
+        }
+    </script>
+</head>
+<body>
+
+    <div id="canvas-container"></div>
+
+    <div id="ui-layer">
+        <!-- Header -->
+        <header class="flex justify-between items-start">
+            <div class="glass-panel rounded-2xl p-6 max-w-sm">
+                <h1 class="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-purple-500 mb-2">
+                    Neural Sphere
+                </h1>
+                <p class="text-gray-400 text-sm mb-6">Interactive 3D audio visualization. Connect your mic or load a track.</p>
+                
+                <div class="space-y-4">
+                    <!-- Microphone Toggle -->
+                    <button id="mic-btn" class="btn w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-medium py-3 px-4 rounded-xl flex items-center justify-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path></svg>
+                        <span>Start Microphone</span>
+                    </button>
+
+                    <div class="relative flex py-2 items-center">
+                        <div class="flex-grow border-t border-gray-600"></div>
+                        <span class="flex-shrink-0 mx-4 text-gray-500 text-xs uppercase">Or</span>
+                        <div class="flex-grow border-t border-gray-600"></div>
+                    </div>
+
+                    <!-- File Upload -->
+                    <div class="relative">
+                        <input type="file" id="file-input" accept="audio/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                        <div class="btn w-full bg-gray-800 hover:bg-gray-700 border border-gray-600 text-white font-medium py-3 px-4 rounded-xl flex items-center justify-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"></path></svg>
+                            <span id="file-label">Upload Audio File</span>
+                        </div>
+                    </div>
+
+                    <!-- Audio Player (Hidden until file uploaded) -->
+                    <div id="audio-player-container" class="hidden mt-4">
+                        <audio id="audio-element" controls crossorigin="anonymous"></audio>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Theme Selector -->
+            <div class="glass-panel rounded-2xl p-4 flex flex-col gap-3">
+                <span class="text-xs text-gray-400 uppercase font-semibold tracking-wider px-2">Color Matrix</span>
+                <button class="theme-btn w-8 h-8 rounded-full border-2 border-white focus:outline-none transition-transform hover:scale-110" data-theme="plasma" style="background: linear-gradient(135deg, #00ffff, #ff00ff);" title="Plasma Wave"></button>
+                <button class="theme-btn w-8 h-8 rounded-full border-2 border-transparent focus:outline-none transition-transform hover:scale-110" data-theme="fire" style="background: linear-gradient(135deg, #ffaa00, #ff0044);" title="Solar Flare"></button>
+                <button class="theme-btn w-8 h-8 rounded-full border-2 border-transparent focus:outline-none transition-transform hover:scale-110" data-theme="abyss" style="background: linear-gradient(135deg, #0000ff, #00ffaa);" title="Deep Abyss"></button>
+            </div>
+        </header>
+
+        <!-- Footer -->
+        <footer class="text-center text-gray-500 text-xs">
+            <p id="status-text">Awaiting audio input...</p>
+        </footer>
+    </div>
+
+    <!-- Application Logic -->
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+        import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+        import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+        import { createNoise3D } from 'simplex-noise';
+
+        // --- Configuration & State ---
+        const config = {
+            sphereRadius: 2,
+            detail: 15, // Higher = more complex mesh but lower performance
+            bloomStrength: 1.5,
+            bloomRadius: 0.8,
+            bloomThreshold: 0.1
+        };
+
+        const themes = {
+            plasma: { inner: 0x220055, wire1: 0x00ffff, wire2: 0xff00ff },
+            fire:   { inner: 0x330000, wire1: 0xffaa00, wire2: 0xff0044 },
+            abyss:  { inner: 0x001133, wire1: 0x00ffaa, wire2: 0x0044ff }
+        };
+        let currentTheme = 'plasma';
+
+        // Audio state
+        let audioCtx, analyser, dataArray;
+        let audioSource = null;
+        let isMicEnabled = false;
+        let smoothedBass = 0, smoothedMid = 0, smoothedTreble = 0;
+
+        // UI Elements
+        const micBtn = document.getElementById('mic-btn');
+        const fileInput = document.getElementById('file-input');
+        const fileLabel = document.getElementById('file-label');
+        const audioElement = document.getElementById('audio-element');
+        const playerContainer = document.getElementById('audio-player-container');
+        const statusText = document.getElementById('status-text');
+        const themeBtns = document.querySelectorAll('.theme-btn');
+
+        // --- Three.js Setup ---
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x050505, 0.03);
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+        camera.position.z = 10;
+
+        const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance" });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Cap pixel ratio for performance
+        renderer.toneMapping = THREE.ReinhardToneMapping;
+        container.appendChild(renderer.domElement);
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.enablePan = false;
+        controls.minDistance = 5;
+        controls.maxDistance = 20;
+
+        // --- Post-Processing (The Glow) ---
+        const renderScene = new RenderPass(scene, camera);
+        const bloomPass = new UnrealBloomPass(
+            new THREE.Vector2(window.innerWidth, window.innerHeight),
+            config.bloomStrength,
+            config.bloomRadius,
+            config.bloomThreshold
+        );
+
+        const composer = new EffectComposer(renderer);
+        composer.addPass(renderScene);
+        composer.addPass(bloomPass);
+
+        // --- 3D Objects ---
+        const noise3D = createNoise3D();
+
+        // Shared Geometry
+        const baseGeometry = new THREE.IcosahedronGeometry(config.sphereRadius, config.detail);
+        
+        // Store original positions for deformation calculations
+        const basePositions = new Float32Array(baseGeometry.attributes.position.count * 3);
+        for (let i = 0; i < baseGeometry.attributes.position.count; i++) {
+            basePositions[i * 3] = baseGeometry.attributes.position.array[i * 3];
+            basePositions[i * 3 + 1] = baseGeometry.attributes.position.array[i * 3 + 1];
+            basePositions[i * 3 + 2] = baseGeometry.attributes.position.array[i * 3 + 2];
+        }
+
+        // Layer 1: Solid Inner Core
+        const coreMat = new THREE.MeshBasicMaterial({ 
+            color: themes.plasma.inner, 
+            transparent: true, 
+            opacity: 0.8
+        });
+        const coreMesh = new THREE.Mesh(baseGeometry.clone(), coreMat);
+        scene.add(coreMesh);
+
+        // Layer 2: Main Wireframe Shell
+        const wireMat1 = new THREE.MeshBasicMaterial({ 
+            color: themes.plasma.wire1, 
+            wireframe: true, 
+            transparent: true, 
+            opacity: 0.4,
+            blending: THREE.AdditiveBlending 
+        });
+        const wireMesh1 = new THREE.Mesh(baseGeometry.clone(), wireMat1);
+        wireMesh1.scale.set(1.02, 1.02, 1.02); // Slightly larger
+        scene.add(wireMesh1);
+
+        // Layer 3: Secondary Outer Wireframe Shell
+        const wireMat2 = new THREE.MeshBasicMaterial({ 
+            color: themes.plasma.wire2, 
+            wireframe: true, 
+            transparent: true, 
+            opacity: 0.2,
+            blending: THREE.AdditiveBlending 
+        });
+        const wireMesh2 = new THREE.Mesh(baseGeometry.clone(), wireMat2);
+        wireMesh2.scale.set(1.05, 1.05, 1.05); // Largest
+        scene.add(wireMesh2);
+
+        // Group them
+        const sphereGroup = new THREE.Group();
+        sphereGroup.add(coreMesh, wireMesh1, wireMesh2);
+        scene.add(sphereGroup);
+
+        // --- Audio Processing Logic ---
+        function initAudioContext() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = audioCtx.createAnalyser();
+                analyser.fftSize = 512;
+                analyser.smoothingTimeConstant = 0.8;
+                dataArray = new Uint8Array(analyser.frequencyBinCount);
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        async function enableMicrophone() {
+            initAudioContext();
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                
+                // Disconnect previous source if exists
+                if (audioSource) audioSource.disconnect();
+                
+                audioSource = audioCtx.createMediaStreamSource(stream);
+                audioSource.connect(analyser);
+                // Do NOT connect to destination (speakers) to avoid feedback loop
+                
+                isMicEnabled = true;
+                playerContainer.classList.add('hidden');
+                audioElement.pause();
+                
+                micBtn.innerHTML = '<span class="w-3 h-3 bg-red-500 rounded-full animate-pulse mr-2"></span> Microphone Active';
+                micBtn.classList.replace('from-purple-600', 'from-red-900');
+                micBtn.classList.replace('to-indigo-600', 'to-red-700');
+                statusText.innerText = "Listening to microphone...";
+            } catch (err) {
+                console.error('Error accessing microphone:', err);
+                alert("Could not access microphone. Please ensure permissions are granted.");
+            }
+        }
+
+        function handleFileUpload(event) {
+            initAudioContext();
+            const file = event.target.files[0];
+            if (!file) return;
+
+            fileLabel.innerText = file.name;
+            const objectUrl = URL.createObjectURL(file);
+            audioElement.src = objectUrl;
+            
+            // Disconnect mic if active
+            if (isMicEnabled && audioSource) {
+                audioSource.disconnect();
+                isMicEnabled = false;
+                micBtn.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path></svg><span>Start Microphone</span>';
+                micBtn.classList.replace('from-red-900', 'from-purple-600');
+                micBtn.classList.replace('to-red-700', 'to-indigo-600');
+            }
+
+            // Route audio element to analyser
+            if (audioSource) audioSource.disconnect();
+            audioSource = audioCtx.createMediaElementSource(audioElement);
+            audioSource.connect(analyser);
+            analyser.connect(audioCtx.destination); // Connect to speakers so we hear the file
+
+            playerContainer.classList.remove('hidden');
+            audioElement.play();
+            statusText.innerText = "Playing local file...";
+        }
+
+        // --- Event Listeners ---
+        micBtn.addEventListener('click', enableMicrophone);
+        fileInput.addEventListener('change', handleFileUpload);
+        
+        // Theme switching
+        themeBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                // Update UI state
+                themeBtns.forEach(b => b.classList.replace('border-white', 'border-transparent'));
+                e.target.classList.replace('border-transparent', 'border-white');
+                
+                // Update ThreeJS materials
+                currentTheme = e.target.dataset.theme;
+                const colors = themes[currentTheme];
+                
+                // Animate color change via GSAP or just set it (we'll just set it for simplicity here, 
+                // but the continuous rendering makes it feel immediate anyway)
+                coreMat.color.setHex(colors.inner);
+                wireMat1.color.setHex(colors.wire1);
+                wireMat2.color.setHex(colors.wire2);
+            });
+        });
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            composer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // --- Core Animation Loop ---
+        const clock = new THREE.Clock();
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const time = clock.getElapsedTime();
+            let bass = 0, mid = 0, treble = 0;
+
+            // 1. Analyze Audio (if available)
+            if (analyser && dataArray) {
+                analyser.getByteFrequencyData(dataArray);
+                
+                // Break frequency array into 3 bands
+                const bassLength = Math.floor(dataArray.length * 0.1);
+                const midLength = Math.floor(dataArray.length * 0.4);
+                
+                let bSum = 0, mSum = 0, tSum = 0;
+                
+                for(let i=0; i<dataArray.length; i++) {
+                    const val = dataArray[i] / 255.0; // Normalize 0-1
+                    if(i < bassLength) bSum += val;
+                    else if(i < bassLength + midLength) mSum += val;
+                    else tSum += val;
+                }
+
+                // Averages
+                bass = bSum / bassLength;
+                mid = mSum / midLength;
+                treble = tSum / (dataArray.length - bassLength - midLength);
+            }
+
+            // Smooth the audio data to prevent jittery geometry
+            smoothedBass = smoothedBass * 0.8 + bass * 0.2;
+            smoothedMid = smoothedMid * 0.8 + mid * 0.2;
+            smoothedTreble = smoothedTreble * 0.8 + treble * 0.2;
+
+            // 2. Deform Geometry
+            const deformGeom = (geometry, scaleAmp, freqScale, timeScale, audioFactor) => {
+                const positions = geometry.attributes.position.array;
+                
+                for (let i = 0; i < geometry.attributes.position.count; i++) {
+                    const bx = basePositions[i * 3];
+                    const by = basePositions[i * 3 + 1];
+                    const bz = basePositions[i * 3 + 2];
+
+                    // Normalize to get direction vector
+                    const len = Math.sqrt(bx*bx + by*by + bz*bz);
+                    const nx = bx/len, ny = by/len, nz = bz/len;
+
+                    // Calculate 3D noise based on vertex position and time
+                    const noise = noise3D(
+                        bx * freqScale + time * timeScale, 
+                        by * freqScale + time * timeScale, 
+                        bz * freqScale + time * timeScale
+                    );
+
+                    // Combine noise with audio input
+                    const displacement = (noise * scaleAmp) + (audioFactor * 0.8);
+
+                    // Apply displacement
+                    positions[i * 3]     = bx + nx * displacement;
+                    positions[i * 3 + 1] = by + ny * displacement;
+                    positions[i * 3 + 2] = bz + nz * displacement;
+                }
+                geometry.attributes.position.needsUpdate = true;
+            };
+
+            // Apply different deformations to different layers based on frequency bands
+            // Core reacts to Bass (Slow, large movements)
+            deformGeom(coreMesh.geometry, 0.3, 0.5, 0.2, smoothedBass);
+            
+            // Wire 1 reacts to Mids (Medium ripples)
+            deformGeom(wireMesh1.geometry, 0.4, 0.8, 0.5, smoothedMid);
+            
+            // Wire 2 reacts to Treble (Fast, erratic ripples)
+            deformGeom(wireMesh2.geometry, 0.5, 1.2, 0.8, smoothedTreble);
+
+            // 3. Rotate the group
+            // Base rotation + audio-driven speed increase
+            const rotationSpeed = 0.002 + (smoothedBass * 0.01);
+            sphereGroup.rotation.x += rotationSpeed * 0.5;
+            sphereGroup.rotation.y += rotationSpeed;
+            
+            // Counter-rotate internal wires for a more complex look
+            wireMesh1.rotation.y -= rotationSpeed * 1.5;
+            wireMesh2.rotation.z += rotationSpeed * 2.0;
+
+            // 4. Dynamic Lighting/Bloom intensity based on bass
+            bloomPass.strength = config.bloomStrength + (smoothedBass * 1.0);
+
+            // Render via post-processing composer instead of standard renderer
+            controls.update();
+            composer.render();
+        }
+
+        // Start animation
+        animate();
+    </script>
+</body>
+</html>

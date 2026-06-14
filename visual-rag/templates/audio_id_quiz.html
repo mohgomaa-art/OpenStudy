@@ -1,0 +1,343 @@
+<!-- HEAD -->
+<style>
+    .audio-card {
+        background: linear-gradient(135deg, rgba(20, 20, 25, 0.8), rgba(28, 25, 38, 0.8));
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-top: 3.5px solid var(--accent, #3b82f6);
+        border-radius: 1.5rem;
+    }
+    .play-btn {
+        background: var(--accent-bg, rgba(59, 130, 246, 0.15));
+        border: 1.5px solid var(--accent, #3b82f6);
+        color: var(--accent-text, #60a5fa);
+        border-radius: 50%;
+        width: 54px;
+        height: 54px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .play-btn:hover {
+        transform: scale(1.08);
+        box-shadow: 0 0 12px var(--accent-glow, rgba(59,130,246,0.4));
+    }
+    .quiz-option {
+        background-color: rgba(255, 255, 255, 0.04);
+        border: 1.5px solid rgba(255, 255, 255, 0.1);
+        color: #ffffff;
+        border-radius: 0.75rem;
+        padding: 10px 16px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-align: left;
+    }
+    .quiz-option:hover {
+        background-color: rgba(255, 255, 255, 0.08);
+        border-color: var(--accent, #3b82f6);
+    }
+    .quiz-option.correct {
+        background-color: rgba(16, 185, 129, 0.15) !important;
+        border-color: #10b981 !important;
+        color: #34d399 !important;
+    }
+    .quiz-option.incorrect {
+        background-color: rgba(239, 68, 68, 0.15) !important;
+        border-color: #ef4444 !important;
+        color: #f87171 !important;
+    }
+</style>
+
+<!-- BODY -->
+<div class="w-full max-w-xl flex flex-col gap-4 animate-fade-in py-2">
+    <!-- Progress Indicator -->
+    <div class="w-full flex justify-between items-center text-xs text-zinc-500 px-1">
+        <span>Auscultation & Sound Quiz</span>
+        <span id="quiz-progress">Question 1 of 5</span>
+    </div>
+
+    <!-- Active Question Card -->
+    <div class="audio-card p-6 shadow-2xl flex flex-col gap-5">
+        <div>
+            <span class="px-2 py-0.5 rounded text-[9px] font-bold tracking-widest uppercase bg-blue-500/10 text-blue-400 border border-blue-500/20">Sound Test</span>
+            <h3 id="quiz-question" class="text-sm md:text-base font-bold text-white mt-2 leading-relaxed">
+                Loading question...
+            </h3>
+        </div>
+
+        <!-- Audio Player Panel -->
+        <div class="flex items-center gap-4 bg-zinc-950/20 p-4 rounded-xl border border-zinc-800/40">
+            <button onclick="playAudio()" class="play-btn">
+                <svg id="play-icon" class="w-6 h-6 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M8 5v14l11-7z"></path>
+                </svg>
+                <svg id="pause-icon" class="w-6 h-6 hidden" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"></path>
+                </svg>
+            </button>
+            <div class="flex flex-col">
+                <span class="text-xs font-bold text-white">Interactive Audio Feed</span>
+                <span id="audio-status" class="text-[10px] text-zinc-500 mt-0.5">Click play to listen to auscultation sound</span>
+            </div>
+            
+            <!-- Hidden Audio Element -->
+            <audio id="audio-player" src="" onerror="setupAudioFallback()"></audio>
+        </div>
+
+        <!-- Options list -->
+        <div id="options-grid" class="flex flex-col gap-2.5">
+            <!-- Buttons will render here -->
+        </div>
+
+        <!-- Explanation details -->
+        <div id="explanation-box" class="hidden glass-panel p-4 rounded-xl bg-zinc-950/20 border border-zinc-800/40 text-xs text-zinc-300 leading-relaxed">
+            <!-- Rationale text -->
+        </div>
+
+        <!-- Navigation triggers -->
+        <div class="flex justify-between items-center border-t border-zinc-800/40 pt-4">
+            <button onclick="prevQuestion()" class="glass-panel px-4 py-2 rounded-xl text-zinc-400 hover:text-white transition text-xs bg-zinc-900/30">
+                Previous
+            </button>
+            
+            <button onclick="nextQuestion()" class="px-4 py-2 rounded-xl text-zinc-400 hover:text-white transition text-xs bg-zinc-900/30">
+                Next
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- SCRIPT -->
+<script>
+    document.getElementById('template-name-label').innerText = 'Interactive Auscultation Quiz';
+
+    let currentIdx = 0;
+    let selectedAns = null;
+    let audioContext = null;
+    let fallbackInterval = null;
+
+    function renderQuiz() {
+        const title = VISUAL_DATA.title || "Sound Identification Quiz";
+        document.getElementById('template-name-label').innerText = title;
+        
+        loadQuestion();
+    }
+
+    function loadQuestion() {
+        const questions = VISUAL_DATA.questions || [];
+        if (questions.length === 0) return;
+
+        const q = questions[currentIdx];
+        document.getElementById('quiz-question').innerText = q.question;
+        document.getElementById('quiz-progress').innerText = `Question ${currentIdx + 1} of ${questions.length}`;
+
+        // Reset state
+        selectedAns = null;
+        stopAudio();
+        document.getElementById('explanation-box').classList.add('hidden');
+        document.getElementById('audio-status').innerText = `Click play to listen: ${q.audio_filename}`;
+
+        // Setup audio element
+        const player = document.getElementById('audio-player');
+        player.src = `http://localhost:8000/api/rag/download?path=${encodeURIComponent(q.audio_filename)}`;
+
+        // Render options
+        const grid = document.getElementById('options-grid');
+        grid.innerHTML = '';
+
+        q.options.forEach(opt => {
+            const btn = document.createElement('button');
+            btn.className = 'quiz-option';
+            btn.innerText = opt;
+            btn.addEventListener('click', () => checkOption(opt));
+            grid.appendChild(btn);
+        });
+        if (window.renderMath) window.renderMath();
+    }
+
+    function checkOption(option) {
+        if (selectedAns !== null) return; // Answer locked
+        selectedAns = option;
+
+        const questions = VISUAL_DATA.questions || [];
+        const q = questions[currentIdx];
+        if (!q) return;
+
+        const correctAns = q.answer;
+        const btns = document.getElementsByClassName('quiz-option');
+
+        for (let i = 0; i < btns.length; i++) {
+            const btn = btns[i];
+            const text = btn.innerText;
+            if (text === correctAns) {
+                btn.classList.add('correct');
+            } else if (text === option) {
+                btn.classList.add('incorrect');
+            }
+        }
+
+        // Show Explanation
+        const expBox = document.getElementById('explanation-box');
+        expBox.innerHTML = `<strong>${option === correctAns ? '✔ Correct!' : '❌ Incorrect.'}</strong> ${q.explanation}`;
+        expBox.classList.remove('hidden');
+    }
+
+    function playAudio() {
+        const player = document.getElementById('audio-player');
+        const playIcon = document.getElementById('play-icon');
+        const pauseIcon = document.getElementById('pause-icon');
+
+        if (player.paused) {
+            // Check if player has invalid source and triggers error fallback
+            if (!player.src || player.src.includes("undefined")) {
+                setupAudioFallback();
+                return;
+            }
+            player.play().then(() => {
+                playIcon.classList.add('hidden');
+                pauseIcon.classList.remove('hidden');
+                document.getElementById('audio-status').innerText = "Playing audio file...";
+            }).catch(err => {
+                setupAudioFallback();
+            });
+        } else {
+            stopAudio();
+        }
+    }
+
+    function stopAudio() {
+        const player = document.getElementById('audio-player');
+        const playIcon = document.getElementById('play-icon');
+        const pauseIcon = document.getElementById('pause-icon');
+
+        player.pause();
+        player.currentTime = 0;
+        playIcon.classList.remove('hidden');
+        pauseIcon.classList.add('hidden');
+        
+        if (fallbackInterval) {
+            clearInterval(fallbackInterval);
+            fallbackInterval = null;
+        }
+    }
+
+    function setupAudioFallback() {
+        // Fallback tone generator using Web Audio API or browser Speech Synthesis
+        const questions = VISUAL_DATA.questions || [];
+        const q = questions[currentIdx];
+        if (!q) return;
+
+        const filename = q.audio_filename.toLowerCase();
+        
+        const playIcon = document.getElementById('play-icon');
+        const pauseIcon = document.getElementById('pause-icon');
+        playIcon.classList.add('hidden');
+        pauseIcon.classList.remove('hidden');
+
+        document.getElementById('audio-status').innerText = "Synthesizing murmur simulator...";
+
+        try {
+            // Heart murmur audio synthesizer
+            if (filename.includes("murmur") || filename.includes("stenosis") || filename.includes("regurgitation")) {
+                if (!audioContext) {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                
+                // Create a low periodic heartbeat tone + whooshing murmur noise
+                let duration = 4; // seconds
+                let osc = audioContext.createOscillator();
+                let gain = audioContext.createGain();
+                
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(55, audioContext.currentTime); // Low heart beat hum
+                
+                // Murmur noise filter
+                let bufferSize = audioContext.sampleRate * duration;
+                let buffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
+                let data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) {
+                    data[i] = Math.random() * 2 - 1;
+                }
+                
+                let noise = audioContext.createBufferSource();
+                noise.buffer = buffer;
+                
+                let filter = audioContext.createBiquadFilter();
+                filter.type = 'bandpass';
+                filter.frequency.value = 250; // Low pitch murmur whoosh
+                
+                let noiseGain = audioContext.createGain();
+                noiseGain.gain.setValueAtTime(0.04, audioContext.currentTime);
+                
+                osc.connect(gain);
+                noise.connect(filter);
+                filter.connect(noiseGain);
+                
+                gain.connect(audioContext.destination);
+                noiseGain.connect(audioContext.destination);
+                
+                // Pulse gain to simulate heartbeat beats (lub-dub-whoosh)
+                let now = audioContext.currentTime;
+                gain.gain.setValueAtTime(0, now);
+                for (let t = 0; t < duration; t += 0.8) {
+                    gain.gain.setValueAtTime(0, now + t);
+                    gain.gain.linearRampToValueAtTime(0.8, now + t + 0.1);
+                    gain.gain.linearRampToValueAtTime(0, now + t + 0.25);
+                    
+                    // Dub
+                    gain.gain.setValueAtTime(0, now + t + 0.3);
+                    gain.gain.linearRampToValueAtTime(0.5, now + t + 0.38);
+                    gain.gain.linearRampToValueAtTime(0, now + t + 0.5);
+                }
+                
+                osc.start(now);
+                noise.start(now);
+                
+                osc.stop(now + duration);
+                noise.stop(now + duration);
+
+                fallbackInterval = setTimeout(() => {
+                    stopAudio();
+                }, duration * 1000);
+
+            } else {
+                // Speech Synthesis fallback (reads the question audio description)
+                if ('speechSynthesis' in window) {
+                    const desc = `Audio clip description: ${q.question.replace("Identify", "")}`;
+                    const utterance = new SpeechSynthesisUtterance(desc);
+                    utterance.rate = 0.95;
+                    window.speechSynthesis.speak(utterance);
+                    
+                    utterance.onend = () => {
+                        stopAudio();
+                    };
+                } else {
+                    document.getElementById('audio-status').innerText = "Murmur synthesizer failed. Audio API offline.";
+                    stopAudio();
+                }
+            }
+        } catch (e) {
+            document.getElementById('audio-status').innerText = "Murmur synthesizer failed. Audio API offline.";
+            stopAudio();
+        }
+    }
+
+    function nextQuestion() {
+        const questions = VISUAL_DATA.questions || [];
+        if (questions.length === 0) return;
+        currentIdx = (currentIdx + 1) % questions.length;
+        loadQuestion();
+    }
+
+    function prevQuestion() {
+        const questions = VISUAL_DATA.questions || [];
+        if (questions.length === 0) return;
+        currentIdx = (currentIdx - 1 + questions.length) % questions.length;
+        loadQuestion();
+    }
+
+    renderQuiz();
+</script>

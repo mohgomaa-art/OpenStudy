@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acute Kidney Injury Summary Sheet</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: transparent;
+            color: #0f172a;
+            margin: 0;
+            padding: 0;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+    </style>
+    <style>
+    .summary-card {
+        transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+    .summary-card:hover {
+        transform: translateY(-2px);
+        border-color: rgba(168, 85, 247, 0.25);
+    }
+    .bullet-item::before {
+        content: "•";
+        color: #a855f7;
+        font-weight: bold;
+        display: inline-block;
+        width: 1em;
+        margin-left: -1em;
+    }
+</style>
+
+</head>
+<body class="w-full h-full flex flex-col justify-center items-center overflow-hidden selection:bg-purple-500/30 p-2">
+    <!-- Main Workspace -->
+    <main class="w-full h-full flex flex-col justify-center items-center relative">
+        <div class="w-full max-w-5xl flex flex-col gap-6 animate-fade-in">
+    <!-- Grid of summary panels -->
+    <div id="summary-grid" class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+        <!-- Summary cards injected here -->
+    </div>
+</div>
+
+    </main>
+
+    <!-- Hidden label to satisfy template script references without breaking layout -->
+    <div id="template-name-label" style="display: none;"></div>
+
+    <script>
+const VISUAL_DATA = {
+  "template": "summary_sheet",
+  "title": "Acute Kidney Injury Summary Sheet",
+  "sections": [
+    {
+      "heading": "Definition of Acute Kidney Injury",
+      "summary": "Acute Kidney Injury (AKI) is characterized by a rapid decline in kidney function over hours to days, leading to the accumulation of nitrogenous waste products and dysregulation of fluid, electrolyte, and acid-base balance.",
+      "bullets": [
+        "AKI involves an abrupt decrease in glomerular filtration rate (GFR).",
+        "It is often reversible if the underlying cause is promptly identified and treated.",
+        "Previously known as acute renal failure (ARF), AKI encompasses a spectrum of severity.",
+        "Diagnosis is typically based on an increase in serum creatinine or a decrease in urine output.",
+        "AKI can range from mild impairment to severe kidney failure requiring renal replacement therapy."
+      ]
+    },
+    {
+      "heading": "Etiology and Causes of AKI",
+      "summary": "AKI is broadly categorized into prerenal, intrinsic renal, and postrenal causes, reflecting the primary location of the insult to kidney function.",
+      "bullets": [
+        "Prerenal AKI results from decreased renal perfusion (e.g., hypovolemia, heart failure, sepsis, renal artery stenosis).",
+        "Intrinsic Renal AKI involves direct damage to kidney structures (e.g., acute tubular necrosis, glomerulonephritis, interstitial nephritis, vasculitis).",
+        "Postrenal AKI is caused by obstruction to urine outflow (e.g., kidney stones, benign prostatic hyperplasia, tumors, neurogenic bladder).",
+        "Acute tubular necrosis (ATN), a common intrinsic cause, often results from prolonged ischemia or exposure to nephrotoxins (e.g., aminoglycosides, contrast dye, NSAIDs).",
+        "Sepsis is a leading cause of AKI in critically ill patients, often involving a combination of prerenal and intrinsic mechanisms."
+      ]
+    },
+    {
+      "heading": "Pathophysiology of Acute Kidney Injury",
+      "summary": "The mechanisms of AKI vary by cause but generally involve impaired renal blood flow, direct cellular injury, or obstruction, leading to a cascade of events that compromise filtration and reabsorption.",
+      "bullets": [
+        "In prerenal AKI, reduced renal blood flow activates compensatory mechanisms, but prolonged hypoperfusion leads to tubular ischemia and potential progression to ATN.",
+        "Intrinsic AKI, particularly ATN, involves ischemic or toxic injury to renal tubular epithelial cells, causing cell death, sloughing, tubular obstruction, and backleak of filtrate.",
+        "Glomerulonephritis, another intrinsic cause, involves immune-mediated inflammation and damage to glomerular capillaries, impairing filtration.",
+        "Postrenal AKI leads to increased intratubular pressure proximal to the obstruction, which opposes glomerular filtration and can cause hydronephrosis and parenchymal damage.",
+        "Inflammation, oxidative stress, and endothelial dysfunction are key pathophysiological contributors across various forms of AKI."
+      ]
+    },
+    {
+      "heading": "Clinical Features and Diagnosis of AKI",
+      "summary": "The clinical presentation of AKI can range from subtle to severe, often reflecting the underlying cause and the degree of kidney function impairment, with diagnosis relying on specific laboratory markers.",
+      "bullets": [
+        "Oliguria (decreased urine output) or anuria (no urine output) is a common, but not universal, sign; non-oliguric AKI can also occur.",
+        "Fluid overload symptoms include peripheral edema, pulmonary congestion, and elevated jugular venous pressure due to impaired fluid excretion.",
+        "Electrolyte imbalances such as hyperkalemia, hyperphosphatemia, hypocalcemia, and metabolic acidosis are frequently observed.",
+        "Uremic symptoms, including nausea, vomiting, anorexia, fatigue, and altered mental status, can develop in severe cases due to the accumulation of nitrogenous wastes.",
+        "Diagnosis is based on an increase in serum creatinine (e.g., \">0.3 mg/dL within 48 hours or >1.5 times baseline within 7 days) or a decrease in urine output (<0.5 mL/kg/hr for >6 hours)."
+      ]
+    },
+    {
+      "heading": "Management of Acute Kidney Injury",
+      "summary": "Management of AKI focuses on identifying and treating the underlying cause, optimizing renal perfusion, managing complications, and providing supportive care to prevent further kidney damage.",
+      "bullets": [
+        "Identify and treat the underlying cause, such as correcting hypovolemia with fluid resuscitation, discontinuing nephrotoxic drugs, or relieving urinary obstruction.",
+        "Carefully manage fluid and electrolyte balance, including treating hyperkalemia (e.g., with insulin/glucose, calcium gluconate, diuretics) and metabolic acidosis.",
+        "Review all medications, discontinue renally excreted drugs or adjust their doses, and avoid further exposure to nephrotoxic agents.",
+        "Provide adequate nutritional support while adhering to necessary fluid and electrolyte restrictions.",
+        "Consider renal replacement therapy (RRT), such as dialysis or hemofiltration, for severe fluid overload, refractory hyperkalemia, severe metabolic acidosis, uremic encephalopathy, or pericarditis.",
+        "Monitor kidney function closely through serial measurements of serum creatinine and urine output to guide treatment adjustments."
+      ]
+    }
+  ]
+};
+</script>
+    
+    <script>
+    document.getElementById('template-name-label').innerText = 'Summary Cheat Sheet';
+
+    function renderSummarySheet() {
+        const grid = document.getElementById('summary-grid');
+        grid.innerHTML = '';
+
+        const sections = VISUAL_DATA.sections || [];
+
+        sections.forEach((sec, idx) => {
+            const card = document.createElement('div');
+            card.className = 'summary-card glass-panel p-6 rounded-2xl bg-zinc-950/15 border border-white/5 flex flex-col gap-3.5';
+
+            // Generate clean title header with accent borders
+            const colors = ['border-purple-500/50', 'border-pink-500/50', 'border-amber-500/50', 'border-blue-500/50', 'border-teal-500/50'];
+            const activeColor = colors[idx % colors.length];
+
+            let bulletsHTML = '';
+            if (sec.bullets && sec.bullets.length > 0) {
+                bulletsHTML = `
+                    <ul class="flex flex-col gap-2.5 pl-4 mt-2">
+                        ${sec.bullets.map(b => `<li class="bullet-item text-xs text-zinc-400 leading-relaxed font-medium">${b}</li>`).join('')}
+                    </ul>
+                `;
+            }
+
+            card.innerHTML = `
+                <div class="flex flex-col gap-1.5 border-b border-zinc-900 pb-3">
+                    <h3 class="text-sm font-extrabold uppercase tracking-widest text-zinc-500">Section ${idx + 1}</h3>
+                    <h2 class="text-base font-bold text-white leading-snug">${sec.heading}</h2>
+                </div>
+                
+                ${sec.summary ? `<p class="text-xs text-zinc-300 leading-relaxed font-medium bg-black/10 p-3 rounded-xl border border-white/5 border-l-4 ${activeColor}">${sec.summary}</p>` : ''}
+                
+                ${bulletsHTML}
+            `;
+
+            grid.appendChild(card);
+        });
+
+        if (sections.length === 0) {
+            grid.innerHTML = `<div class="col-span-full text-center text-zinc-500 text-xs italic py-8">No summary sections on file</div>`;
+        }
+    }
+
+    // Initialize
+    renderSummarySheet();
+</script>
+</body>
+</html>

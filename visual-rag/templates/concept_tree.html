@@ -1,0 +1,409 @@
+<!-- HEAD -->
+<style>
+    .tree-svg {
+        background-color: #07070a;
+        cursor: grab;
+    }
+    .tree-svg:active {
+        cursor: grabbing;
+    }
+    .node-container {
+        cursor: pointer;
+        transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), filter 0.3s;
+        will-change: transform;
+    }
+    .node-container:hover {
+        transform: scale(1.05);
+    }
+    .node-rect {
+        transition: stroke-width 0.2s, stroke 0.2s;
+    }
+    .node-container:hover .node-rect {
+        stroke-width: 2px;
+        filter: drop-shadow(0 0 8px var(--glow-color));
+    }
+    .connector-line {
+        fill: none;
+        stroke-dasharray: 1000;
+        stroke-dashoffset: 0;
+        animation: drawLine 1s ease-out forwards;
+        transition: d 0.4s cubic-bezier(0.16, 1, 0.3, 1), stroke 0.3s;
+        will-change: d;
+    }
+    @keyframes drawLine {
+        from { stroke-dashoffset: 1000; }
+        to { stroke-dashoffset: 0; }
+    }
+    .details-panel {
+        transform: translate3d(0, 100%, 0);
+        transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        will-change: transform;
+    }
+    .details-panel.is-open {
+        transform: translate3d(0, 0, 0);
+    }
+</style>
+
+<!-- BODY -->
+<div id="canvas-wrap" class="w-full glass-panel rounded-2xl overflow-hidden relative flex flex-col animate-fade-in" style="height:650px;resize:vertical;min-height:350px;max-height:1800px">
+    <!-- SVG Canvas -->
+    <svg id="canvas" class="w-full h-full tree-svg" viewBox="0 0 900 650">
+        <defs>
+            <radialGradient id="nodeGrad" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stop-color="#18181b" />
+                <stop offset="100%" stop-color="#09090b" />
+            </radialGradient>
+            <!-- Drop shadows -->
+            <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+                <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.5" />
+            </filter>
+        </defs>
+        
+        <!-- Viewport Group for Pan & Zoom -->
+        <g id="viewport">
+            <g id="links-group"></g>
+            <g id="nodes-group"></g>
+        </g>
+    </svg>
+    
+    <!-- Controls Overlay -->
+    <div class="absolute bottom-4 right-4 flex gap-2 z-10">
+        <button onclick="resetZoom()" class="glass-panel w-9 h-9 flex items-center justify-center rounded-lg text-zinc-400 hover:text-white hover:border-zinc-700 bg-zinc-950/40" title="Recenter">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+        </button>
+        <button onclick="zoom(1.2)" class="glass-panel w-9 h-9 flex items-center justify-center rounded-lg text-zinc-400 hover:text-white hover:border-zinc-700 bg-zinc-950/40" title="Zoom In">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+        </button>
+        <button onclick="zoom(0.8)" class="glass-panel w-9 h-9 flex items-center justify-center rounded-lg text-zinc-400 hover:text-white hover:border-zinc-700 bg-zinc-950/40" title="Zoom Out">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path></svg>
+        </button>
+    </div>
+    
+    <!-- Instructions -->
+    <div class="absolute top-4 left-4 text-xs text-zinc-500 pointer-events-none">
+        Drag to Pan • Scroll to Zoom • Click parent nodes to toggle branches • Click any node for detail
+    </div>
+
+    <!-- Active Details Overlay Panel -->
+    <div id="details-panel" class="absolute bottom-0 left-0 right-0 glass-panel border-t border-white/10 bg-zinc-950/90 p-5 details-panel flex flex-col gap-1 z-20">
+        <div class="flex justify-between items-start">
+            <h4 id="detail-title" class="text-lg font-bold text-white">Select a concept node</h4>
+            <button onclick="closeDetails()" class="text-zinc-500 hover:text-white text-xs px-2 py-1 rounded hover:bg-zinc-800">Close</button>
+        </div>
+        <p id="detail-text" class="text-zinc-400 text-sm mt-1 leading-relaxed">Click on any node in the hierarchy tree to view its detailed scientific description and key concepts here.</p>
+    </div>
+</div>
+
+<!-- SCRIPT -->
+<script>
+    document.getElementById('template-name-label').innerText = 'Interactive Concept Tree';
+
+    const COLOR_MAP = {
+        purple: { border: "#c084fc", bg: "#2e1065", glow: "rgba(192, 132, 252, 0.4)" },
+        teal: { border: "#2dd4bf", bg: "#115e59", glow: "rgba(45, 212, 191, 0.4)" },
+        coral: { border: "#fb923c", bg: "#9a3412", glow: "rgba(251, 146, 60, 0.4)" },
+        blue: { border: "#60a5fa", bg: "#1e3a8a", glow: "rgba(96, 165, 250, 0.4)" },
+        amber: { border: "#fbbf24", bg: "#78350f", glow: "rgba(251, 191, 36, 0.4)" }
+    };
+
+    // Zoom / Pan State
+    let zoomLevel = 1.0;
+    let panX = 0;
+    let panY = 0;
+    let isDragging = false;
+    let startX = 0;
+    let startY = 0;
+
+    const viewport = document.getElementById('viewport');
+    const canvas = document.getElementById('canvas');
+
+    canvas.addEventListener('mousedown', (e) => {
+        if (e.target.closest('.node-container')) return; // Avoid drag on node clicks
+        isDragging = true;
+        startX = e.clientX - panX;
+        startY = e.clientY - panY;
+    });
+
+    window.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        panX = e.clientX - startX;
+        panY = e.clientY - startY;
+        updateTransform();
+    });
+
+    window.addEventListener('mouseup', () => {
+        isDragging = false;
+    });
+
+    canvas.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        const factor = e.deltaY < 0 ? 1.1 : 0.9;
+        zoom(factor);
+    });
+
+    function zoom(factor) {
+        zoomLevel = Math.max(0.4, Math.min(3.0, zoomLevel * factor));
+        updateTransform();
+    }
+
+    function resetZoom() {
+        zoomLevel = 1.0;
+        panX = 0;
+        panY = 0;
+        updateTransform();
+    }
+
+    function updateTransform() {
+        // Center of canvas is roughly 450, 325
+        viewport.setAttribute('transform', `translate(${450 + panX}, ${325 + panY}) scale(${zoomLevel}) translate(-450, -325)`);
+    }
+
+    // Collapsed nodes state tracking
+    const collapsedNodes = new Set();
+    let selectedNodeId = null;
+
+    function toggleNodeCollapse(nodeId, event) {
+        event.stopPropagation(); // Avoid triggering node select or canvas pan
+        if (collapsedNodes.has(nodeId)) {
+            collapsedNodes.delete(nodeId);
+        } else {
+            collapsedNodes.add(nodeId);
+        }
+        renderTree();
+        setTimeout(() => window.reportHeight?.(), 100);
+    }
+
+    function selectNode(nodeId, event) {
+        if (event) event.stopPropagation();
+        selectedNodeId = nodeId;
+        
+        const nodes = VISUAL_DATA.nodes || [];
+        const node = nodes.find(n => n.id === nodeId);
+        if (node) {
+            document.getElementById('detail-title').innerText = node.label;
+            document.getElementById('detail-text').innerText = node.detail || "No details provided for this concept.";
+            document.getElementById('details-panel').classList.add('is-open');
+        }
+        renderTree();
+    }
+
+    function closeDetails() {
+        document.getElementById('details-panel').classList.remove('is-open');
+        selectedNodeId = null;
+        renderTree();
+    }
+
+    function renderTree() {
+        const linksGroup = document.getElementById('links-group');
+        const nodesGroup = document.getElementById('nodes-group');
+        
+        linksGroup.innerHTML = '';
+        nodesGroup.innerHTML = '';
+
+        const nodes = VISUAL_DATA.nodes || [];
+        if (nodes.length === 0) return;
+
+        // Build parent/children mapping
+        const nodeMap = new Map();
+        const childrenMap = new Map();
+        let rootNode = null;
+
+        nodes.forEach(n => {
+            nodeMap.set(n.id, { ...n, subtreeWidth: 1, x: 0, y: 0 });
+            if (!n.parent_id) {
+                rootNode = n.id;
+            } else {
+                if (!childrenMap.has(n.parent_id)) {
+                    childrenMap.set(n.parent_id, []);
+                }
+                childrenMap.get(n.parent_id).push(n.id);
+            }
+        });
+
+        // Ensure we have a root node
+        if (!rootNode && nodes.length > 0) {
+            rootNode = nodes[0].id;
+        }
+
+        // Subtree width computation (ignoring children of collapsed nodes)
+        function computeWidths(id) {
+            const nodeObj = nodeMap.get(id);
+            if (collapsedNodes.has(id)) {
+                nodeObj.subtreeWidth = 1;
+                return 1;
+            }
+            const kids = childrenMap.get(id) || [];
+            if (kids.length === 0) {
+                nodeObj.subtreeWidth = 1;
+                return 1;
+            }
+            let w = 0;
+            kids.forEach(kId => {
+                w += computeWidths(kId);
+            });
+            nodeObj.subtreeWidth = w;
+            return w;
+        }
+
+        computeWidths(rootNode);
+
+        // Position Assignment
+        const depthHeight = 130;
+        function assignCoords(id, xStart, xEnd, depth) {
+            const nodeObj = nodeMap.get(id);
+            const x = (xStart + xEnd) / 2;
+            const y = 80 + depth * depthHeight;
+            nodeObj.x = x;
+            nodeObj.y = y;
+
+            if (collapsedNodes.has(id)) return;
+
+            const kids = childrenMap.get(id) || [];
+            if (kids.length > 0) {
+                let currentX = xStart;
+                const totalW = nodeObj.subtreeWidth;
+                const stepSize = (xEnd - xStart) / totalW;
+                
+                kids.forEach(kId => {
+                    const kidObj = nodeMap.get(kId);
+                    const kidW = kidObj.subtreeWidth * stepSize;
+                    assignCoords(kId, currentX, currentX + kidW, depth + 1);
+                    currentX += kidW;
+                });
+            }
+        }
+
+        assignCoords(rootNode, 40, 860, 0);
+
+        // Draw Links first so they appear behind nodes
+        function drawLinks(id) {
+            if (collapsedNodes.has(id)) return;
+            const kids = childrenMap.get(id) || [];
+            const parent = nodeMap.get(id);
+            
+            kids.forEach(kId => {
+                const child = nodeMap.get(kId);
+                const colorConfig = COLOR_MAP[child.color] || COLOR_MAP.purple;
+                
+                // Draw a beautiful vertical S-curve connector
+                const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                const cpY1 = parent.y + depthHeight / 2;
+                const cpY2 = child.y - depthHeight / 2;
+                path.setAttribute("d", `M ${parent.x} ${parent.y} C ${parent.x} ${cpY1}, ${child.x} ${cpY2}, ${child.x} ${child.y}`);
+                path.setAttribute("class", "connector-line");
+                path.setAttribute("stroke", colorConfig.border);
+                path.setAttribute("stroke-width", "2");
+                path.setAttribute("stroke-opacity", "0.65");
+                linksGroup.appendChild(path);
+                
+                drawLinks(kId);
+            });
+        }
+        drawLinks(rootNode);
+
+        // Draw Nodes
+        nodeMap.forEach((node, id) => {
+            // Check if node is visible (all ancestors must not be collapsed)
+            let isVisible = true;
+            let currentParent = node.parent_id;
+            while (currentParent) {
+                if (collapsedNodes.has(currentParent)) {
+                    isVisible = false;
+                    break;
+                }
+                const pObj = nodeMap.get(currentParent);
+                currentParent = pObj ? pObj.parent_id : null;
+            }
+
+            if (!isVisible) return;
+
+            const colorConfig = COLOR_MAP[node.color] || COLOR_MAP.purple;
+            
+            const nodeG = document.createElementNS("http://www.w3.org/2000/svg", "g");
+            nodeG.setAttribute("transform", `translate(${node.x}, ${node.y})`);
+            nodeG.setAttribute("class", "node-container");
+            nodeG.setAttribute("style", `--glow-color: ${colorConfig.glow}`);
+            nodeG.addEventListener('click', (e) => selectNode(node.id, e));
+
+            // Background rectangle
+            const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+            const textWidth = Math.min(160, node.label.length * 8.5 + 24);
+            const height = 40;
+            rect.setAttribute("x", -textWidth / 2);
+            rect.setAttribute("y", -height / 2);
+            rect.setAttribute("width", textWidth);
+            rect.setAttribute("height", height);
+            rect.setAttribute("rx", "10");
+            rect.setAttribute("class", "node-rect");
+            rect.setAttribute("fill", "url(#nodeGrad)");
+            
+            // Highlight selected node
+            if (selectedNodeId === node.id) {
+                rect.setAttribute("stroke", "#ffffff");
+                rect.setAttribute("stroke-width", "2.5");
+            } else {
+                rect.setAttribute("stroke", colorConfig.border);
+                rect.setAttribute("stroke-width", "1.5");
+            }
+            rect.setAttribute("filter", "url(#shadow)");
+            nodeG.appendChild(rect);
+
+            // Node Label
+            const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            text.setAttribute("text-anchor", "middle");
+            text.setAttribute("y", "5");
+            text.setAttribute("fill", "#ffffff");
+            text.setAttribute("font-size", "12px");
+            text.setAttribute("font-weight", "500");
+            
+            let displayLabel = node.label;
+            if (displayLabel.length > 20) {
+                displayLabel = displayLabel.slice(0, 18) + "...";
+            }
+            text.textContent = displayLabel;
+            nodeG.appendChild(text);
+
+            // Expand/Collapse Indicator
+            const kids = childrenMap.get(node.id) || [];
+            if (kids.length > 0) {
+                const indicatorG = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                indicatorG.setAttribute("transform", `translate(0, ${height / 2})`);
+                indicatorG.addEventListener('click', (e) => toggleNodeCollapse(node.id, e));
+                
+                const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                circle.setAttribute("r", "7");
+                circle.setAttribute("fill", collapsedNodes.has(node.id) ? colorConfig.border : "#09090b");
+                circle.setAttribute("stroke", colorConfig.border);
+                circle.setAttribute("stroke-width", "1");
+                indicatorG.appendChild(circle);
+
+                const sign = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                sign.setAttribute("text-anchor", "middle");
+                sign.setAttribute("y", "3");
+                sign.setAttribute("fill", collapsedNodes.has(node.id) ? "#09090b" : colorConfig.border);
+                sign.setAttribute("font-size", "9px");
+                sign.setAttribute("font-weight", "bold");
+                sign.textContent = collapsedNodes.has(node.id) ? "+" : "−";
+                indicatorG.appendChild(sign);
+                
+                nodeG.appendChild(indicatorG);
+            }
+
+            nodesGroup.appendChild(nodeG);
+        });
+    }
+
+    // Initialize Layout
+    renderTree();
+    resetZoom();
+
+    // Resize handle: let user drag canvas taller/shorter; report new height to parent iframe
+    if (window.ResizeObserver) {
+        const wrap = document.getElementById('canvas-wrap');
+        new ResizeObserver(() => {
+            const svg = document.getElementById('canvas');
+            if (svg) svg.setAttribute('height', wrap.clientHeight);
+            setTimeout(() => window.reportHeight?.(), 50);
+        }).observe(wrap);
+    }
+</script>

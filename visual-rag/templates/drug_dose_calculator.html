@@ -1,0 +1,143 @@
+<!-- HEAD -->
+<style>
+    .calc-input {
+        background-color: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        color: #ffffff;
+        border-radius: 0.75rem;
+        padding: 8px 12px;
+        width: 100%;
+        outline: none;
+        transition: border-color 0.2s;
+    }
+    .calc-input:focus {
+        border-color: var(--accent, #10b981);
+    }
+    .result-alert-safe {
+        background-color: rgba(16, 185, 129, 0.1);
+        border: 1px solid rgba(16, 185, 129, 0.25);
+        color: #34d399;
+    }
+    .result-alert-warn {
+        background-color: rgba(245, 158, 11, 0.1);
+        border: 1px solid rgba(245, 158, 11, 0.25);
+        color: #fbbf24;
+    }
+</style>
+
+<!-- BODY -->
+<div class="w-full max-w-lg glass-panel p-6 rounded-2xl bg-zinc-950/20 shadow-2xl flex flex-col gap-5 animate-fade-in">
+    <!-- Header -->
+    <div class="border-b border-zinc-800/40 pb-3 flex justify-between items-center">
+        <div>
+            <h2 id="calc-title" class="text-base font-bold text-white">Clinical Dose Calculator</h2>
+            <p id="calc-indication" class="text-xs text-zinc-500 mt-0.5">Indication</p>
+        </div>
+        <span id="drug-name-badge" class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Drug</span>
+    </div>
+
+    <!-- Info Info -->
+    <div class="glass-panel p-3.5 rounded-xl bg-zinc-900/40 text-xs text-zinc-400 flex flex-col gap-1 border border-zinc-800/30">
+        <div><strong>Recommended Dosing Guidelines:</strong> <span id="guidelines-text" class="text-zinc-200"></span></div>
+        <div class="mt-1"><strong>Safety Range:</strong> <span id="safety-range-text" class="text-zinc-200"></span></div>
+    </div>
+
+    <!-- Inputs Row -->
+    <div class="grid grid-cols-2 gap-4">
+        <div>
+            <label class="text-[10px] text-zinc-500 font-bold uppercase tracking-wider block mb-1.5">Patient Weight (kg)</label>
+            <input type="number" id="weight-input" placeholder="e.g. 12" class="calc-input text-sm" min="1" value="10">
+        </div>
+        <div>
+            <label class="text-[10px] text-zinc-500 font-bold uppercase tracking-wider block mb-1.5">Target Dose (mg/kg)</label>
+            <input type="number" id="dose-input" placeholder="e.g. 2.5" class="calc-input text-sm" step="0.1" value="2.5">
+        </div>
+    </div>
+
+    <button onclick="calculateDose()" class="w-full py-2.5 rounded-xl text-white font-bold bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 transition text-xs shadow-lg shadow-emerald-500/10 cursor-pointer">
+        Calculate Dose
+    </button>
+
+    <!-- Calculation result panel -->
+    <div id="result-panel" class="hidden rounded-xl p-4 flex flex-col gap-2">
+        <h4 class="text-xs font-bold uppercase tracking-wider">Calculation Results</h4>
+        <div id="result-math" class="text-lg font-extrabold">0 mg total dose</div>
+        <p id="result-feedback" class="text-xs leading-relaxed"></p>
+    </div>
+
+    <!-- Worked Example -->
+    <div class="glass-panel p-4 rounded-xl bg-zinc-900/30 border border-zinc-800/50">
+        <h4 class="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-1.5">Worked Dosing Example</h4>
+        <p id="worked-example-text" class="text-zinc-400 text-xs leading-relaxed"></p>
+    </div>
+</div>
+
+<!-- SCRIPT -->
+<script>
+    document.getElementById('template-name-label').innerText = 'Interactive Dosing Calculator';
+
+    function renderCalc() {
+        const title = VISUAL_DATA.title || "Dose Calculator";
+        document.getElementById('calc-title').innerText = title;
+
+        const drug = VISUAL_DATA.drug_name || "Gentamicin";
+        document.getElementById('drug-name-badge').innerText = drug;
+
+        const indication = VISUAL_DATA.indication || "Dosing calculations";
+        document.getElementById('calc-indication').innerText = `Indication: ${indication}`;
+
+        const guidelines = VISUAL_DATA.recommended_dose || "Standard guidelines";
+        document.getElementById('guidelines-text').innerText = guidelines;
+
+        const minVal = VISUAL_DATA.min_dose_mg_kg || 0;
+        const maxVal = VISUAL_DATA.max_dose_mg_kg || 0;
+        document.getElementById('safety-range-text').innerText = `${minVal} to ${maxVal} mg/kg`;
+
+        const worked = VISUAL_DATA.worked_example || "No worked example provided.";
+        document.getElementById('worked-example-text').innerText = worked;
+
+        // Prepopulate dose input with average dose
+        const avgDose = (minVal + maxVal) / 2;
+        if (avgDose > 0) {
+            document.getElementById('dose-input').value = avgDose.toFixed(1);
+        }
+    }
+
+    function calculateDose() {
+        const weight = parseFloat(document.getElementById('weight-input').value);
+        const targetDose = parseFloat(document.getElementById('dose-input').value);
+
+        if (isNaN(weight) || weight <= 0) {
+            alert("Please enter a valid patient weight.");
+            return;
+        }
+        if (isNaN(targetDose) || targetDose <= 0) {
+            alert("Please enter a valid target dose.");
+            return;
+        }
+
+        const totalDose = weight * targetDose;
+        const minVal = VISUAL_DATA.min_dose_mg_kg || 0;
+        const maxVal = VISUAL_DATA.max_dose_mg_kg || 0;
+
+        const panel = document.getElementById('result-panel');
+        const math = document.getElementById('result-math');
+        const feedback = document.getElementById('result-feedback');
+
+        panel.classList.remove('hidden', 'result-alert-safe', 'result-alert-warn');
+        math.innerText = `${totalDose.toFixed(2)} mg total dose`;
+
+        let isSafe = targetDose >= minVal && targetDose <= maxVal;
+
+        if (isSafe) {
+            panel.classList.add('result-alert-safe');
+            feedback.innerHTML = `<strong>✔ Dose is within safety limits.</strong> Calculated as: ${weight} kg × ${targetDose} mg/kg. Safe range is ${minVal} - ${maxVal} mg/kg.`;
+        } else {
+            panel.classList.add('result-alert-warn');
+            const alertText = targetDose < minVal ? "under the minimum recommended" : "exceeds the maximum safety limit";
+            feedback.innerHTML = `<strong>⚠️ Alert: Dose is outside recommended safety limits.</strong> The entered dose of ${targetDose} mg/kg ${alertText} (${minVal} - ${maxVal} mg/kg). Exercise caution.`;
+        }
+    }
+
+    renderCalc();
+</script>

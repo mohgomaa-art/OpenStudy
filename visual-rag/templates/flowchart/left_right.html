@@ -1,0 +1,184 @@
+<!-- HEAD -->
+<style>
+    .flow-track {
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+        overflow-x: auto;
+        padding: 2rem 1rem;
+        scrollbar-width: thin;
+    }
+    .flow-node {
+        flex-shrink: 0;
+        width: 200px;
+        transition: transform 0.25s, border-color 0.25s, box-shadow 0.25s;
+    }
+    .flow-node.is-active {
+        transform: scale(1.04);
+        box-shadow: 0 0 20px -2px rgba(124, 58, 237, 0.4);
+    }
+    .flow-step {
+        border-top: 4px solid var(--accent, #3b82f6);
+    }
+    .flow-decision {
+        border-top: 4px solid #f59e0b;
+    }
+    .flow-outcome {
+        border-top: 4px solid #10b981;
+    }
+</style>
+
+<!-- BODY -->
+<div class="w-full max-w-4xl flex flex-col items-center gap-4 animate-fade-in">
+    <!-- Navigation Status Header -->
+    <div class="w-full flex justify-between items-center glass-panel px-6 py-4 rounded-2xl bg-zinc-950/20 mb-2">
+        <div class="flex flex-col">
+            <span class="text-xs text-zinc-400 font-semibold tracking-wider uppercase">Horizontal Pathway</span>
+            <span id="nav-status-text" class="text-sm font-bold text-white">Select a step to begin tracking</span>
+        </div>
+        <div class="flex gap-2">
+            <button onclick="prevStep()" class="glass-panel px-3 py-1.5 rounded-lg text-zinc-400 hover:text-white text-xs bg-zinc-900/30">
+                Back
+            </button>
+            <button onclick="nextStep()" class="glass-panel px-3 py-1.5 rounded-lg text-purple-400 hover:text-purple-300 text-xs font-semibold bg-zinc-900/30">
+                Continue
+            </button>
+        </div>
+    </div>
+
+    <!-- Horizontal scroll track container -->
+    <div class="w-full overflow-hidden glass-panel rounded-3xl bg-zinc-900/10">
+        <div id="flow-container" class="flow-track">
+            <!-- Flow nodes will be rendered inline here -->
+        </div>
+    </div>
+</div>
+
+<!-- SCRIPT -->
+<script>
+    document.getElementById('template-name-label').innerText = 'Horizontal Flowchart';
+
+    let activeStepId = null;
+    let stepMap = new Map();
+    let renderChain = [];
+
+    function renderFlow() {
+        const container = document.getElementById('flow-container');
+        container.innerHTML = '';
+        
+        const steps = VISUAL_DATA.steps || [];
+        steps.sort((a, b) => a.id - b.id);
+        
+        stepMap.clear();
+        steps.forEach(s => stepMap.set(s.id, s));
+
+        const pointedTo = new Set(steps.map(s => s.next).filter(n => n !== null));
+        const startStep = steps.find(s => !pointedTo.has(s.id)) || steps[0];
+        
+        if (startStep) {
+            activeStepId = startStep.id;
+        }
+
+        let currentStep = startStep;
+        let renderedIds = new Set();
+        renderChain = [];
+
+        while (currentStep && !renderedIds.has(currentStep.id)) {
+            renderChain.push(currentStep);
+            renderedIds.add(currentStep.id);
+            currentStep = stepMap.get(currentStep.next);
+        }
+
+        steps.forEach(s => {
+            if (!renderedIds.has(s.id)) {
+                renderChain.push(s);
+                renderedIds.add(s.id);
+            }
+        });
+
+        renderChain.forEach((step, idx) => {
+            // Draw Connector Arrow between cards
+            if (idx > 0) {
+                const arrowDiv = document.createElement('div');
+                arrowDiv.setAttribute('class', 'flex-shrink-0 flex items-center');
+                arrowDiv.innerHTML = `
+                    <svg class="w-6 h-6 text-zinc-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"></path>
+                    </svg>
+                `;
+                container.appendChild(arrowDiv);
+            }
+
+            // Draw Card Node
+            let typeClass = "flow-step";
+            if (step.type === "decision") typeClass = "flow-decision";
+            else if (step.type === "outcome") typeClass = "flow-outcome";
+
+            const card = document.createElement('div');
+            card.id = `node-${step.id}`;
+            card.setAttribute('class', `flow-node ${typeClass} glass-panel p-4 rounded-xl bg-zinc-950/20 flex flex-col justify-between h-[150px] cursor-pointer`);
+            card.addEventListener('click', () => selectStep(step.id));
+
+            card.innerHTML = `
+                <div>
+                    <div class="flex justify-between items-center text-[9px] font-bold text-zinc-500 uppercase tracking-widest">
+                        <span>Node ${step.id}</span>
+                        <span class="text-zinc-400">${step.type}</span>
+                    </div>
+                    <h4 class="text-xs font-bold text-white mt-1.5 leading-snug">${step.label}</h4>
+                    <p class="text-[10px] text-zinc-400 mt-1 leading-relaxed line-clamp-3">${step.sublabel}</p>
+                </div>
+            `;
+            container.appendChild(card);
+        });
+
+        updateUI();
+    }
+
+    function selectStep(id) {
+        activeStepId = id;
+        updateUI();
+    }
+
+    function updateUI() {
+        const steps = document.getElementsByClassName('flow-node');
+        for (let i = 0; i < steps.length; i++) {
+            steps[i].classList.remove('is-active');
+        }
+
+        const activeNode = document.getElementById(`node-${activeStepId}`);
+        if (activeNode) {
+            activeNode.classList.add('is-active');
+            activeNode.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        }
+
+        const activeStep = stepMap.get(activeStepId);
+        const statusText = document.getElementById('nav-status-text');
+        if (activeStep) {
+            statusText.innerText = `${activeStep.label} ${activeStep.sublabel ? ' — ' + activeStep.sublabel : ''}`;
+            if (window.renderMath) window.renderMath();
+        }
+    }
+
+    function nextStep() {
+        const current = stepMap.get(activeStepId);
+        if (current && current.next !== null && stepMap.has(current.next)) {
+            selectStep(current.next);
+        } else {
+            // cycle to first
+            const idx = renderChain.findIndex(s => s.id === activeStepId);
+            if (idx !== -1 && idx < renderChain.length - 1) {
+                selectStep(renderChain[idx + 1].id);
+            }
+        }
+    }
+
+    function prevStep() {
+        const idx = renderChain.findIndex(s => s.id === activeStepId);
+        if (idx > 0) {
+            selectStep(renderChain[idx - 1].id);
+        }
+    }
+
+    renderFlow();
+</script>

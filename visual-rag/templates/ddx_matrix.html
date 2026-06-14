@@ -1,0 +1,256 @@
+<!-- HEAD -->
+<style>
+    .ddx-grid th {
+        background-color: rgba(20, 20, 25, 0.9);
+        border-bottom: 2px solid rgba(255, 255, 255, 0.08);
+    }
+    .symptom-checkbox:checked + label {
+        color: #a78bfa;
+        font-weight: 500;
+    }
+    .cell-present {
+        background-color: rgba(16, 185, 129, 0.08);
+        color: #10b981;
+    }
+    .cell-absent {
+        background-color: rgba(244, 63, 94, 0.08);
+        color: #f43f5e;
+    }
+    .cell-variable {
+        background-color: rgba(245, 158, 11, 0.08);
+        color: #f59e0b;
+    }
+    .disease-row {
+        transition: transform 0.2s, background-color 0.2s;
+    }
+    .disease-row.high-match {
+        background-color: rgba(139, 92, 246, 0.05);
+        border-left: 3px solid #8b5cf6;
+    }
+</style>
+
+<!-- BODY -->
+<div class="w-full flex flex-col lg:flex-row gap-6 animate-fade-in items-stretch">
+    <!-- Left panel: Symptoms checklist -->
+    <div class="w-full lg:w-1/4 glass-panel p-5 rounded-2xl flex flex-col gap-4 bg-zinc-950/20">
+        <div class="flex flex-col">
+            <h3 class="text-sm font-bold text-white uppercase tracking-wider">Present Symptoms</h3>
+            <p class="text-zinc-500 text-[11px] mt-0.5">Toggle symptoms to compute matching differentials</p>
+        </div>
+        
+        <div id="symptoms-checklist" class="flex flex-col gap-2.5 pr-1">
+            <!-- Checklist items will go here -->
+        </div>
+
+        <button onclick="clearSymptoms()" class="w-full glass-panel py-2 rounded-xl text-xs text-zinc-400 hover:text-white border-zinc-800/40 hover:bg-zinc-900/10 transition mt-auto">
+            Clear Selection
+        </button>
+    </div>
+
+    <!-- Right panel: Matrix Grid & Differentials probability list -->
+    <div class="w-full lg:w-3/4 flex flex-col gap-4">
+        <!-- Differential probability rank list -->
+        <div id="differential-results" class="w-full glass-panel p-4 rounded-xl flex gap-3 flex-wrap items-center bg-zinc-950/10 border-dashed border-zinc-800">
+            <span class="text-xs text-zinc-500 uppercase font-semibold">Rankings:</span>
+            <!-- Rankings dynamically rendered -->
+            <span id="rankings-placeholder" class="text-xs text-zinc-500">Select symptoms on the left to calculate matches</span>
+        </div>
+
+        <!-- Table Grid -->
+        <div class="w-full glass-panel rounded-2xl overflow-hidden overflow-x-auto shadow-2xl">
+            <table class="w-full ddx-grid min-w-[600px] border-collapse text-left text-xs text-zinc-300">
+                <thead>
+                    <tr id="matrix-headers">
+                        <!-- headers -->
+                    </tr>
+                </thead>
+                <tbody id="matrix-body" class="divide-y divide-zinc-800/40">
+                    <!-- disease rows -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- SCRIPT -->
+<script>
+    document.getElementById('template-name-label').innerText = 'Differential Diagnosis Matrix';
+
+    const selectedSymptoms = new Set();
+
+    function renderDDX() {
+        const checklist = document.getElementById('symptoms-checklist');
+        const headersTr = document.getElementById('matrix-headers');
+        
+        const symptoms = VISUAL_DATA.symptoms || [];
+        const diseases = VISUAL_DATA.diseases || [];
+
+        // 1. Render Symptoms Checklist
+        checklist.innerHTML = '';
+        symptoms.forEach((symptom, idx) => {
+            const wrapper = document.createElement('div');
+            wrapper.setAttribute('class', 'flex items-center gap-2.5 py-0.5');
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.id = `sym-check-${idx}`;
+            checkbox.dataset.symptom = symptom;
+            checkbox.setAttribute('class', 'symptom-checkbox w-4 h-4 rounded border-zinc-800 text-purple-600 focus:ring-purple-500/20 bg-zinc-900/50');
+            checkbox.addEventListener('change', (e) => {
+                if (e.target.checked) {
+                    selectedSymptoms.add(symptom);
+                } else {
+                    selectedSymptoms.delete(symptom);
+                }
+                calculateDifferentials();
+                setTimeout(() => window.reportHeight?.(), 100);
+            });
+
+            const label = document.createElement('label');
+            label.htmlFor = `sym-check-${idx}`;
+            label.setAttribute('class', 'text-xs text-zinc-400 cursor-pointer select-none truncate hover:text-zinc-300 transition');
+            label.innerText = symptom;
+
+            wrapper.appendChild(checkbox);
+            wrapper.appendChild(label);
+            checklist.appendChild(wrapper);
+        });
+
+        // 2. Render Table Headers
+        headersTr.innerHTML = '';
+        const thDisease = document.createElement('th');
+        thDisease.setAttribute('class', 'px-4 py-3 font-bold text-zinc-100 tracking-wider text-[10px] uppercase w-[180px]');
+        thDisease.innerText = 'Disease / Diagnosis';
+        headersTr.appendChild(thDisease);
+
+        // Add Match Score Header
+        const thScore = document.createElement('th');
+        thScore.setAttribute('class', 'px-4 py-3 font-bold text-zinc-100 tracking-wider text-[10px] uppercase w-[80px]');
+        thScore.innerText = 'Match %';
+        headersTr.appendChild(thScore);
+
+        symptoms.forEach(symptom => {
+            const th = document.createElement('th');
+            th.setAttribute('class', 'px-4 py-3 font-bold text-zinc-100 tracking-wider text-[10px] uppercase text-center');
+            th.innerText = symptom;
+            headersTr.appendChild(th);
+        });
+
+        // 3. Render Matrix Data Rows
+        calculateDifferentials();
+    }
+
+    function clearSymptoms() {
+        selectedSymptoms.clear();
+        document.querySelectorAll('.symptom-checkbox').forEach(cb => cb.checked = false);
+        calculateDifferentials();
+    }
+
+    function calculateDifferentials() {
+        const bodyTbody = document.getElementById('matrix-body');
+        const rankingsDiv = document.getElementById('differential-results');
+        
+        const symptoms = VISUAL_DATA.symptoms || [];
+        const diseases = VISUAL_DATA.diseases || [];
+        const matrix = VISUAL_DATA.matrix || {};
+
+        // Compute scores
+        const scores = diseases.map(disease => {
+            const diseaseMatrix = matrix[disease] || {};
+            let matchCount = 0;
+            let totalChecked = selectedSymptoms.size;
+            
+            if (totalChecked > 0) {
+                selectedSymptoms.forEach(symptom => {
+                    const presence = diseaseMatrix[symptom] || 'absent';
+                    if (presence === 'present') {
+                        matchCount += 1.0;
+                    } else if (presence === 'variable') {
+                        matchCount += 0.5; // partial credit
+                    }
+                });
+            }
+            
+            const pct = totalChecked > 0 ? Math.round((matchCount / totalChecked) * 100) : 0;
+            return { name: disease, percentage: pct };
+        });
+
+        // Sort by match percentage descending
+        scores.sort((a, b) => b.percentage - a.percentage);
+
+        // Render rankings panel
+        rankingsDiv.innerHTML = '<span class="text-[10px] text-zinc-500 uppercase font-bold tracking-wider">Rankings:</span>';
+        if (selectedSymptoms.size === 0) {
+            rankingsDiv.innerHTML += '<span class="text-xs text-zinc-500 ml-1">Select symptoms on the left to calculate match probabilities</span>';
+        } else {
+            scores.forEach((item, idx) => {
+                let badgeColor = 'bg-zinc-800 text-zinc-400 border-zinc-700/50';
+                if (idx === 0 && item.percentage > 0) {
+                    badgeColor = 'bg-purple-500/10 text-purple-400 border-purple-500/30 font-bold';
+                } else if (item.percentage >= 50) {
+                    badgeColor = 'bg-teal-500/10 text-teal-400 border-teal-500/30';
+                }
+                
+                const rankSpan = document.createElement('span');
+                rankSpan.setAttribute('class', `px-2 py-0.5 rounded-md text-[10px] border flex items-center gap-1 ${badgeColor}`);
+                rankSpan.innerHTML = `<span>${item.name}</span><span class="opacity-80">(${item.percentage}%)</span>`;
+                rankingsDiv.appendChild(rankSpan);
+            });
+        }
+
+        // Render rows
+        bodyTbody.innerHTML = '';
+        scores.forEach(scoreItem => {
+            const disease = scoreItem.name;
+            const diseaseMatrix = matrix[disease] || {};
+            
+            const tr = document.createElement('tr');
+            let isHighMatch = selectedSymptoms.size > 0 && scoreItem.percentage >= 60;
+            tr.setAttribute('class', `disease-row ${isHighMatch ? 'high-match' : ''}`);
+
+            // Disease Name Cell
+            const tdName = document.createElement('td');
+            tdName.setAttribute('class', 'px-4 py-3 font-bold text-white border-r border-zinc-800/20');
+            tdName.innerText = disease;
+            tr.appendChild(tdName);
+
+            // Match Percentage Cell
+            const tdPct = document.createElement('td');
+            tdPct.setAttribute('class', `px-4 py-3 font-bold border-r border-zinc-800/20 text-center ${scoreItem.percentage > 0 ? 'text-purple-400' : 'text-zinc-600'}`);
+            tdPct.innerText = `${scoreItem.percentage}%`;
+            tr.appendChild(tdPct);
+
+            // Cells for each symptom
+            symptoms.forEach(symptom => {
+                const td = document.createElement('td');
+                const val = diseaseMatrix[symptom] || 'absent';
+                
+                let cellClass = 'cell-absent';
+                let symbol = '✖';
+                
+                if (val === 'present') {
+                    cellClass = 'cell-present font-bold';
+                    symbol = '✔';
+                } else if (val === 'variable') {
+                    cellClass = 'cell-variable';
+                    symbol = '？';
+                }
+
+                td.setAttribute('class', `px-4 py-3 text-center transition-all ${cellClass}`);
+                td.innerText = symbol;
+                
+                // Dim symptom column if it is NOT currently selected by the user
+                if (selectedSymptoms.size > 0 && !selectedSymptoms.has(symptom)) {
+                    td.classList.add('opacity-30');
+                }
+
+                tr.appendChild(td);
+            });
+
+            bodyTbody.appendChild(tr);
+        });
+    }
+
+    // Initialize DDX Grid
+    renderDDX();
+</script>

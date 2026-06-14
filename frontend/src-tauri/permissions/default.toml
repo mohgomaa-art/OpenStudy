@@ -1,0 +1,21 @@
+# src-tauri/permissions/default.toml
+
+[[permission]]
+identifier = "allow-all"
+description = "Allows all custom application commands"
+commands = { allow = [
+    "set_click_through",
+    "start_dragging",
+    "save_position",
+    "open_dashboard",
+    "close_dashboard",
+    "open_visualizer",
+    "close_visualizer",
+    "minimize_window",
+    "maximize_window",
+    "toggle_fullscreen",
+    "close_window",
+    "hide_companion",
+    "reset_position",
+    "quit_app"
+] }

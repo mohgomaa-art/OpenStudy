@@ -1,0 +1,157 @@
+<!-- HEAD -->
+<style>
+    .comp-table th {
+        background-color: rgba(24, 24, 27, 0.85);
+        border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+    }
+    .comp-table tr {
+        transition: background-color 0.2s;
+    }
+    .comp-table tr:hover {
+        background-color: rgba(255, 255, 255, 0.03);
+    }
+    .badge-positive {
+        background-color: rgba(16, 185, 129, 0.1);
+        color: rgb(52, 211, 153);
+        border: 1px solid rgba(16, 185, 129, 0.2);
+    }
+    .badge-negative {
+        background-color: rgba(244, 63, 94, 0.1);
+        color: rgb(251, 113, 133);
+        border: 1px solid rgba(244, 63, 94, 0.2);
+    }
+    .badge-neutral {
+        background-color: rgba(59, 130, 246, 0.1);
+        color: rgb(96, 165, 250);
+        border: 1px solid rgba(59, 130, 246, 0.2);
+    }
+</style>
+
+<!-- BODY -->
+<div class="w-full flex flex-col gap-4 animate-fade-in">
+    <!-- Search / Filter bar -->
+    <div class="w-full max-w-md self-end flex gap-2">
+        <div class="relative w-full">
+            <input type="text" id="search-input" oninput="filterTable()" placeholder="Search comparison items..." class="w-full glass-panel px-4 py-2 rounded-xl text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-purple-500/50 bg-zinc-950/20 text-sm">
+            <span class="absolute right-3 top-2.5 text-zinc-500">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            </span>
+        </div>
+    </div>
+
+    <!-- Table Container -->
+    <div class="w-full glass-panel rounded-2xl overflow-hidden overflow-x-auto shadow-2xl">
+        <table class="w-full comp-table min-w-[650px] border-collapse text-left text-sm text-zinc-300">
+            <thead>
+                <tr id="table-headers">
+                    <!-- Column headers will be generated here -->
+                </tr>
+            </thead>
+            <tbody id="table-body" class="divide-y divide-zinc-800/40">
+                <!-- Rows will be generated here -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- SCRIPT -->
+<script>
+    document.getElementById('template-name-label').innerText = 'Comparison Matrix';
+
+    function getBadgeClass(val) {
+        const text = String(val).toLowerCase();
+        
+        // Positive indicators
+        if (text.includes("yes") || text.includes("present") || text.includes("positive") || 
+            text.includes("increase") || text.includes("stimulate") || text.includes("agonist")) {
+            return "badge-positive px-2.5 py-1 rounded-lg font-medium inline-block text-xs";
+        }
+        
+        // Negative indicators
+        if (text.includes("no ") || text === "no" || text.includes("absent") || text.includes("negative") || 
+            text.includes("decrease") || text.includes("inhibit") || text.includes("block") || text.includes("antagonist")) {
+            return "badge-negative px-2.5 py-1 rounded-lg font-medium inline-block text-xs";
+        }
+        
+        // Standard informational badge
+        if (val.length < 35 && val.length > 2) {
+            return "badge-neutral px-2.5 py-1 rounded-lg inline-block text-xs";
+        }
+        
+        return ""; // normal text style for long descriptions
+    }
+
+    function renderTable() {
+        const headersTr = document.getElementById('table-headers');
+        const bodyTbody = document.getElementById('table-body');
+        
+        const items = VISUAL_DATA.items || [];
+        const criteria = VISUAL_DATA.criteria || [];
+        const data = VISUAL_DATA.data || {};
+
+        // 1. Generate Headers
+        headersTr.innerHTML = '';
+        const thItem = document.createElement('th');
+        thItem.setAttribute('class', 'px-6 py-4 font-bold text-zinc-100 tracking-wider text-xs uppercase w-[200px]');
+        thItem.innerText = 'Comparison Item';
+        headersTr.appendChild(thItem);
+
+        criteria.forEach(crit => {
+            const th = document.createElement('th');
+            th.setAttribute('class', 'px-6 py-4 font-bold text-zinc-100 tracking-wider text-xs uppercase');
+            th.innerText = crit;
+            headersTr.appendChild(th);
+        });
+
+        // 2. Generate Rows
+        bodyTbody.innerHTML = '';
+        items.forEach(item => {
+            const tr = document.createElement('tr');
+            tr.setAttribute('class', 'table-row-item hover:bg-zinc-900/10');
+            tr.dataset.itemName = item.toLowerCase();
+
+            // Row header
+            const tdHeader = document.createElement('td');
+            tdHeader.setAttribute('class', 'px-6 py-4 font-bold text-white whitespace-nowrap bg-zinc-950/10 border-r border-zinc-800/20');
+            tdHeader.innerText = item;
+            tr.appendChild(tdHeader);
+
+            // Row cells
+            criteria.forEach(crit => {
+                const td = document.createElement('td');
+                td.setAttribute('class', 'px-6 py-4 leading-relaxed max-w-[280px]');
+                
+                const val = (data[item] && data[item][crit]) !== undefined ? data[item][crit] : 'N/A';
+                
+                const badgeClass = getBadgeClass(val);
+                if (badgeClass) {
+                    const span = document.createElement('span');
+                    span.setAttribute('class', badgeClass);
+                    span.innerText = val;
+                    td.appendChild(span);
+                } else {
+                    td.innerText = val;
+                }
+                tr.appendChild(td);
+            });
+
+            bodyTbody.appendChild(tr);
+        });
+    }
+
+    function filterTable() {
+        const query = document.getElementById('search-input').value.toLowerCase();
+        const rows = document.querySelectorAll('.table-row-item');
+        
+        rows.forEach(row => {
+            if (row.dataset.itemName.includes(query)) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    }
+
+    // Initialize Table
+    renderTable();
+</script>

@@ -1,0 +1,277 @@
+<!-- HEAD -->
+<style>
+    .drag-item {
+        cursor: grab;
+        transition: transform 0.15s, border-color 0.15s;
+        touch-action: none;
+    }
+    .drag-item:active {
+        cursor: grabbing;
+    }
+    .drag-item.is-selected {
+        border-color: #a78bfa;
+        background-color: rgba(167, 139, 250, 0.1);
+        transform: scale(0.98);
+    }
+    .drop-zone {
+        min-height: 120px;
+        transition: background-color 0.25s, border-color 0.25s;
+    }
+    .drop-zone.drag-over {
+        background-color: rgba(139, 92, 246, 0.05);
+        border-color: #8b5cf6;
+    }
+    .shake-anim {
+        animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+    }
+    @keyframes shake {
+        10%, 90% { transform: translate3d(-1px, 0, 0); }
+        20%, 80% { transform: translate3d(2px, 0, 0); }
+        30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+        40%, 60% { transform: translate3d(4px, 0, 0); }
+    }
+    .success-badge {
+        animation: successPop 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+    }
+    @keyframes successPop {
+        0% { transform: scale(0.5); opacity: 0; }
+        100% { transform: scale(1); opacity: 1; }
+    }
+</style>
+
+<!-- BODY -->
+<div class="w-full flex flex-col gap-6 animate-fade-in">
+    <!-- Scoreboard and Instructions -->
+    <div class="w-full flex justify-between items-center glass-panel px-6 py-4 rounded-2xl bg-zinc-950/20">
+        <div class="flex flex-col gap-0.5">
+            <span class="text-xs text-zinc-400 font-semibold tracking-wider uppercase">Active Recall Game</span>
+            <p id="game-desc" class="text-xs text-zinc-500">Drag terms into their matching categories, or click a term then a category.</p>
+        </div>
+        <div class="flex items-center gap-4">
+            <div class="flex flex-col items-end">
+                <span class="text-[10px] text-zinc-500 uppercase font-bold tracking-widest">Progress</span>
+                <span id="score-text" class="text-lg font-bold text-purple-400">0 / 0 Matched</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Category Drop Zones Grid -->
+    <div id="categories-grid" class="w-full grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Categories dynamic columns -->
+    </div>
+
+    <!-- Unmatched Items Pool -->
+    <div class="w-full flex flex-col gap-3 mt-2">
+        <span class="text-xs text-zinc-500 uppercase font-semibold tracking-wider">Unassigned Items Pool</span>
+        <div id="items-pool" class="w-full glass-panel p-5 rounded-2xl min-h-[90px] flex flex-wrap gap-2.5 bg-zinc-950/10 border-dashed border-zinc-800">
+            <!-- Items pool dynamic cards -->
+        </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="flex justify-between items-center mt-2 px-1">
+        <button onclick="showAnswers()" class="text-zinc-500 hover:text-zinc-400 text-xs transition">
+            Reveal Solutions
+        </button>
+        <button onclick="resetGame()" class="glass-panel px-4 py-2 rounded-xl text-xs text-purple-400 border-purple-500/25 hover:bg-purple-500/10 transition bg-zinc-900/30 font-semibold">
+            Reset Game
+        </button>
+    </div>
+</div>
+
+<!-- SCRIPT -->
+<script>
+    document.getElementById('template-name-label').innerText = 'Recall Matching Game';
+
+    let selectedItemId = null;
+    let score = 0;
+    let totalItems = 0;
+
+    // Load data
+    const categories = VISUAL_DATA.categories || [];
+    const items = VISUAL_DATA.items || [];
+    
+    function initGame() {
+        totalItems = items.length;
+        score = 0;
+        selectedItemId = null;
+        updateScoreboard();
+
+        // 1. Render Categories Grid
+        const grid = document.getElementById('categories-grid');
+        grid.innerHTML = '';
+        categories.forEach((cat, idx) => {
+            const col = document.createElement('div');
+            col.setAttribute('class', 'glass-panel rounded-2xl p-5 flex flex-col gap-3 bg-zinc-950/15');
+            
+            // Header
+            col.innerHTML = `
+                <div class="flex justify-between items-center border-b border-zinc-850 pb-2">
+                    <h3 class="text-sm font-bold text-white tracking-wide">${cat}</h3>
+                    <span class="text-[9px] bg-zinc-800 text-zinc-500 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider zone-count" id="zone-count-${idx}">0 items</span>
+                </div>
+                <div class="drop-zone flex flex-wrap gap-2.5 p-2 rounded-xl border border-dashed border-zinc-850" id="drop-zone-${idx}" data-category="${cat}" ondragover="allowDrop(e)" ondrop="handleDrop(event)">
+                </div>
+            `;
+            grid.appendChild(col);
+
+            // Setup HTML5 Drag events for the drop zones
+            const dz = document.getElementById(`drop-zone-${idx}`);
+            dz.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dz.classList.add('drag-over');
+            });
+            dz.addEventListener('dragleave', () => {
+                dz.classList.remove('drag-over');
+            });
+            dz.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dz.classList.remove('drag-over');
+                const itemId = e.dataTransfer.getData('text/plain');
+                assignItem(parseInt(itemId), cat);
+            });
+            
+            // Click-to-place fallback event for the whole column
+            dz.parentElement.addEventListener('click', () => {
+                if (selectedItemId !== null) {
+                    assignItem(selectedItemId, cat);
+                }
+            });
+        });
+
+        // 2. Render Items Pool
+        resetPool();
+    }
+
+    function resetPool() {
+        const pool = document.getElementById('items-pool');
+        pool.innerHTML = '';
+        
+        items.forEach(item => {
+            const card = document.createElement('div');
+            card.id = `item-card-${item.id}`;
+            card.draggable = true;
+            card.setAttribute('class', 'drag-item glass-panel px-3.5 py-2 rounded-xl border-zinc-800 text-xs text-zinc-200 bg-zinc-900/30 shadow-md flex items-center gap-1.5 select-none');
+            card.innerText = item.text;
+
+            // HTML5 Drag Events
+            card.addEventListener('dragstart', (e) => {
+                e.dataTransfer.setData('text/plain', item.id);
+                card.classList.add('opacity-40');
+            });
+            card.addEventListener('dragend', () => {
+                card.classList.remove('opacity-40');
+            });
+
+            // Click interaction fallback (Click term then Click category)
+            card.addEventListener('click', (e) => {
+                e.stopPropagation(); // Avoid triggering deselect
+                if (selectedItemId === item.id) {
+                    deselectItems();
+                } else {
+                    deselectItems();
+                    selectedItemId = item.id;
+                    card.classList.add('is-selected');
+                }
+            });
+
+            pool.appendChild(card);
+        });
+    }
+
+    function deselectItems() {
+        selectedItemId = null;
+        document.querySelectorAll('.drag-item').forEach(el => el.classList.remove('is-selected'));
+    }
+
+    function allowDrop(e) {
+        e.preventDefault();
+    }
+
+    function assignItem(itemId, categoryName) {
+        const item = items.find(i => i.id === itemId);
+        const card = document.getElementById(`item-card-${itemId}`);
+        if (!item || !card) return;
+
+        deselectItems();
+
+        // 1. Correct Category check
+        if (item.category === categoryName) {
+            // Find target dropzone
+            const zones = document.querySelectorAll('.drop-zone');
+            let targetZone = null;
+            zones.forEach(z => {
+                if (z.dataset.category === categoryName) targetZone = z;
+            });
+
+            if (targetZone) {
+                // Remove drag capabilities since it's matched
+                card.draggable = false;
+                card.onclick = null;
+                card.setAttribute('class', 'drag-item px-3 py-1.5 rounded-lg text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 success-badge flex items-center gap-1 cursor-default');
+                card.innerHTML = `<span>${item.text}</span><span class="text-[9px]">✔</span>`;
+                
+                targetZone.appendChild(card);
+                score += 1;
+                updateScoreboard();
+                updateZoneCounts();
+            }
+        } else {
+            // 2. Incorrect feedback - shake effect and return to pool
+            card.classList.add('shake-anim', 'border-rose-500/40', 'bg-rose-500/5');
+            setTimeout(() => {
+                card.classList.remove('shake-anim', 'border-rose-500/40', 'bg-rose-500/5');
+                // Return to pool container
+                document.getElementById('items-pool').appendChild(card);
+            }, 500);
+        }
+    }
+
+    function updateScoreboard() {
+        document.getElementById('score-text').innerText = `${score} / ${totalItems} Matched`;
+        if (score === totalItems && totalItems > 0) {
+            document.getElementById('score-text').innerHTML = `🎉 All ${totalItems} Matched!`;
+        }
+    }
+
+    function updateZoneCounts() {
+        categories.forEach((cat, idx) => {
+            const dz = document.getElementById(`drop-zone-${idx}`);
+            const count = dz.children.length;
+            document.getElementById(`zone-count-${idx}`).innerText = `${count} item${count !== 1 ? 's' : ''}`;
+        });
+    }
+
+    function resetGame() {
+        initGame();
+    }
+
+    function showAnswers() {
+        deselectItems();
+        // Clear pool and assign everyone to their correct target
+        items.forEach(item => {
+            const card = document.getElementById(`item-card-${item.id}`);
+            if (card && card.parentElement.id === 'items-pool') {
+                const zones = document.querySelectorAll('.drop-zone');
+                let targetZone = null;
+                zones.forEach(z => {
+                    if (z.dataset.category === item.category) targetZone = z;
+                });
+                
+                if (targetZone) {
+                    card.draggable = false;
+                    card.onclick = null;
+                    card.setAttribute('class', 'drag-item px-3 py-1.5 rounded-lg text-xs bg-zinc-800 text-zinc-400 border border-zinc-750 flex items-center gap-1 cursor-default');
+                    card.innerHTML = `<span>${item.text}</span><span class="text-[9px] text-purple-400">(${item.category})</span>`;
+                    targetZone.appendChild(card);
+                }
+            }
+        });
+        score = totalItems;
+        updateScoreboard();
+        updateZoneCounts();
+    }
+
+    // Initialize Game
+    initGame();
+</script>

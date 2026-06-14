@@ -1,0 +1,200 @@
+<!-- HEAD -->
+<style>
+    .lab-row {
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.01), rgba(255, 255, 255, 0.02));
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 1rem;
+        transition: border-color 0.2s;
+    }
+    .lab-row:hover {
+        border-color: rgba(255, 255, 255, 0.15);
+    }
+    .classify-btn {
+        background-color: rgba(255, 255, 255, 0.04);
+        border: 1.5px solid rgba(255, 255, 255, 0.1);
+        color: #94a3b8;
+        border-radius: 0.5rem;
+        padding: 4px 10px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.15s;
+    }
+    .classify-btn:hover {
+        background-color: rgba(255, 255, 255, 0.08);
+        color: #ffffff;
+    }
+    .classify-btn.selected-low {
+        background-color: rgba(59, 130, 246, 0.15);
+        border-color: #3b82f6;
+        color: #60a5fa;
+    }
+    .classify-btn.selected-normal {
+        background-color: rgba(16, 185, 129, 0.15);
+        border-color: #10b981;
+        color: #34d399;
+    }
+    .classify-btn.selected-high {
+        background-color: rgba(239, 68, 68, 0.15);
+        border-color: #ef4444;
+        color: #f87171;
+    }
+    .correct-badge {
+        color: #10b981;
+        font-weight: bold;
+    }
+    .incorrect-badge {
+        color: #ef4444;
+        font-weight: bold;
+    }
+</style>
+
+<!-- BODY -->
+<div class="w-full max-w-2xl glass-panel p-6 rounded-2xl bg-zinc-950/20 shadow-2xl flex flex-col gap-5 animate-fade-in">
+    <!-- Header -->
+    <div class="border-b border-zinc-800/40 pb-3 flex justify-between items-center">
+        <div>
+            <h2 id="panel-title" class="text-base font-bold text-white">Lab Interpretation Panel</h2>
+            <p class="text-xs text-zinc-500 mt-0.5">Categorize each lab result below as Low, Normal, or High</p>
+        </div>
+        <div id="score-badge" class="hidden px-2.5 py-1 rounded-lg text-xs font-bold bg-purple-500/10 text-purple-400 border border-purple-500/20">
+            0/0 Correct
+        </div>
+    </div>
+
+    <!-- Labs list -->
+    <div id="labs-list" class="flex flex-col gap-3">
+        <!-- Rendered lab rows will go here -->
+    </div>
+
+    <!-- Actions -->
+    <div class="flex justify-between items-center border-t border-zinc-800/40 pt-4 mt-2">
+        <button onclick="resetPanel()" class="glass-panel px-4 py-2 rounded-xl text-zinc-400 hover:text-white transition text-xs bg-zinc-900/30">
+            Reset
+        </button>
+        <button onclick="checkAnswers()" class="px-5 py-2 rounded-xl text-white font-bold bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 transition text-xs shadow-lg shadow-purple-500/10 cursor-pointer">
+            Check Interpretations
+        </button>
+    </div>
+</div>
+
+<!-- SCRIPT -->
+<script>
+    document.getElementById('template-name-label').innerText = 'Interactive Labs Panel';
+
+    let userSelections = new Map(); // maps lab name to low/normal/high
+
+    function renderPanel() {
+        const title = VISUAL_DATA.title || "Lab Interpretation Panel";
+        document.getElementById('panel-title').innerText = title;
+
+        const labs = VISUAL_DATA.labs || [];
+        const container = document.getElementById('labs-list');
+        container.innerHTML = '';
+        userSelections.clear();
+
+        labs.forEach((lab, idx) => {
+            userSelections.set(lab.name, null);
+
+            const row = document.createElement('div');
+            row.setAttribute('class', 'lab-row p-4 flex flex-col gap-3');
+            row.id = `lab-row-${idx}`;
+
+            row.innerHTML = `
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                    <!-- Lab details -->
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-bold text-white">${lab.name}</span>
+                            <span class="text-[10px] text-zinc-500 bg-zinc-950/20 px-1.5 py-0.5 rounded border border-zinc-800/40">${lab.normal_min} - ${lab.normal_max} ${lab.unit}</span>
+                        </div>
+                        <div class="text-lg font-black text-white mt-1">
+                            ${lab.value} <span class="text-xs text-zinc-500 font-medium">${lab.unit}</span>
+                        </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="flex gap-1.5 self-end sm:self-auto">
+                        <button onclick="selectClassification(${idx}, 'low')" id="btn-${idx}-low" class="classify-btn">Low</button>
+                        <button onclick="selectClassification(${idx}, 'normal')" id="btn-${idx}-normal" class="classify-btn">Normal</button>
+                        <button onclick="selectClassification(${idx}, 'high')" id="btn-${idx}-high" class="classify-btn">High</button>
+                    </div>
+                </div>
+
+                <!-- Significance block (hidden initially) -->
+                <div id="significance-${idx}" class="hidden text-[11px] text-zinc-400 border-t border-zinc-800/20 pt-2 leading-relaxed">
+                    <span id="correct-label-${idx}" class="mr-1"></span>
+                    ${lab.clinical_significance}
+                </div>
+            `;
+            container.appendChild(row);
+        });
+    }
+
+    function selectClassification(idx, type) {
+        const labs = VISUAL_DATA.labs || [];
+        const lab = labs[idx];
+        if (!lab) return;
+
+        userSelections.set(lab.name, type);
+
+        // Reset button states
+        const lowBtn = document.getElementById(`btn-${idx}-low`);
+        const normalBtn = document.getElementById(`btn-${idx}-normal`);
+        const highBtn = document.getElementById(`btn-${idx}-high`);
+
+        lowBtn.className = "classify-btn";
+        normalBtn.className = "classify-btn";
+        highBtn.className = "classify-btn";
+
+        if (type === 'low') lowBtn.classList.add('selected-low');
+        else if (type === 'normal') normalBtn.classList.add('selected-normal');
+        else if (type === 'high') highBtn.classList.add('selected-high');
+    }
+
+    function checkAnswers() {
+        const labs = VISUAL_DATA.labs || [];
+        let correctCount = 0;
+        let totalCount = 0;
+
+        labs.forEach((lab, idx) => {
+            const userVal = userSelections.get(lab.name);
+            let correctVal = 'normal';
+            if (lab.value < lab.normal_min) {
+                correctVal = 'low';
+            } else if (lab.value > lab.normal_max) {
+                correctVal = 'high';
+            }
+
+            totalCount++;
+
+            const isCorrect = userVal === correctVal;
+            if (isCorrect) correctCount++;
+
+            // Reveal significance and show feedback badge
+            const sigBox = document.getElementById(`significance-${idx}`);
+            const correctLabel = document.getElementById(`correct-label-${idx}`);
+            
+            sigBox.classList.remove('hidden');
+            
+            if (isCorrect) {
+                correctLabel.innerHTML = `<span class="correct-badge">✔ Correct (${correctVal.toUpperCase()}).</span>`;
+            } else {
+                correctLabel.innerHTML = `<span class="incorrect-badge">❌ Incorrect (Correct is ${correctVal.toUpperCase()}).</span>`;
+            }
+        });
+
+        // Show Score Badge
+        const scoreBadge = document.getElementById('score-badge');
+        scoreBadge.innerText = `${correctCount}/${totalCount} Correct`;
+        scoreBadge.classList.remove('hidden');
+        if (window.renderMath) window.renderMath();
+    }
+
+    function resetPanel() {
+        renderPanel();
+        document.getElementById('score-badge').classList.add('hidden');
+    }
+
+    renderPanel();
+</script>

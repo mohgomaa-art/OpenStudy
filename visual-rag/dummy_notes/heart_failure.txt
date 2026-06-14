@@ -1,0 +1,49 @@
+# Pathophysiology of Heart Failure
+
+Heart failure (HF) occurs when the heart cannot pump blood efficiently to meet the metabolic demands of the body. It is categorized into left-sided and right-sided heart failure, each with distinct causes, clinical presentations, and management protocols.
+
+## Left-Sided Heart Failure
+
+Left-sided heart failure is the most common form. It is primarily caused by ischemic heart disease, hypertension, or aortic valve disorders. 
+The pathophysiology involves backward failure of the left ventricle, causing blood to pool in the left atrium and pulmonary veins. This results in elevated hydrostatic pressure in the pulmonary capillaries, leading to pulmonary congestion and pulmonary edema.
+
+### Symptoms of Left-Sided Failure
+- Dyspnea (shortness of breath) on exertion
+- Orthopnea (difficulty breathing when lying flat)
+- Paroxysmal nocturnal dyspnea (PND)
+- Cough with frothy pink sputum
+- Bilateral pulmonary crackles/rales on auscultation
+
+---
+
+## Right-Sided Heart Failure
+
+Right-sided heart failure is most commonly caused by preceding left-sided heart failure (due to increased pulmonary artery pressure). Isolated right-sided heart failure can occur from chronic lung diseases (cor pulmonale) or pulmonary embolism.
+The pathophysiology involves backward failure of the right ventricle, causing blood to pool in the right atrium and systemic venous system. This leads to elevated systemic venous pressure.
+
+### Symptoms of Right-Sided Failure
+- Jugular venous distention (JVD)
+- Hepatomegaly (enlarged liver) and splenomegaly
+- Ascites (fluid accumulation in the peritoneal cavity)
+- Dependent peripheral edema (pitting edema in ankles and feet)
+- Congestive hepatopathy (nutmeg liver)
+
+---
+
+## Comparative Mechanisms
+
+Let's compare left-sided and right-sided heart failure:
+- Left-sided heart failure primarily affects the pulmonary system, causing pulmonary congestion and dyspnea.
+- Right-sided heart failure primarily affects the systemic venous system, causing JVD, hepatomegaly, and peripheral pitting edema.
+
+---
+
+## Clinical Management Algorithm
+
+For patients suspected of heart failure:
+1. Perform diagnostic workup: check BNP levels, chest X-ray, and 12-lead ECG.
+2. Order Echocardiogram to measure ejection fraction (EF).
+3. If EF is reduced (<40%), diagnose Heart Failure with Reduced Ejection Fraction (HFrEF).
+4. Initiate treatment with Guideline-Directed Medical Therapy (GDMT): ACE Inhibitor/ARNI, Beta-blocker, MRA, and SGLT2 inhibitor.
+5. If fluid overload is present, add loop diuretics (Furosemide).
+6. Monitor symptoms and adjust doses to reach target levels.

@@ -1,0 +1,19 @@
+fastapi
+uvicorn
+python-multipart
+pydantic
+
+# LLM Providers
+google-genai
+openai
+anthropic
+groq
+httpx
+
+# Document extraction
+python-pptx
+PyMuPDF
+python-docx
+
+# Export (optional — needed only for PDF/PNG chat export)
+playwright

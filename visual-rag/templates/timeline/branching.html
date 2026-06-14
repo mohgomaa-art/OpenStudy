@@ -1,0 +1,149 @@
+<!-- HEAD -->
+<style>
+    .track-column {
+        flex: 1;
+        min-width: 280px;
+    }
+    .branch-card {
+        border-top: 3px solid var(--accent, #a78bfa);
+        background: linear-gradient(135deg, rgba(20, 20, 25, 0.8), rgba(28, 25, 38, 0.8));
+        transition: transform 0.2s, border-color 0.2s;
+    }
+    .branch-card:hover {
+        transform: translateY(-2px);
+        border-color: var(--accent, #a78bfa);
+    }
+</style>
+
+<!-- BODY -->
+<div class="w-full flex flex-col gap-6 animate-fade-in py-2">
+    <!-- Header title -->
+    <div class="flex flex-col items-center">
+        <h2 id="timeline-title" class="text-xl font-bold text-white">Parallel Branching Timeline</h2>
+        <p id="timeline-subtitle" class="text-xs text-zinc-500 mt-1">Parallel tracking comparison</p>
+    </div>
+
+    <!-- Side-by-side columns -->
+    <div class="flex flex-col md:flex-row gap-6 w-full items-stretch justify-center">
+        <!-- Track A: Host / Maternal / Left -->
+        <div class="track-column flex flex-col gap-4">
+            <div class="glass-panel px-4 py-2.5 rounded-xl text-center font-bold text-white border-l-4 border-purple-500 bg-purple-500/10">
+                <span id="track-a-name">Track A / Host / Mother</span>
+            </div>
+            <div id="track-a-list" class="flex flex-col gap-4">
+                <!-- Track A events -->
+            </div>
+        </div>
+
+        <!-- Divider line -->
+        <div class="hidden md:block w-[1px] bg-zinc-800/40 relative">
+            <div class="absolute inset-0 bg-gradient-to-b from-purple-500/25 via-pink-500/25 to-blue-500/25 w-[1px]"></div>
+        </div>
+
+        <!-- Track B: Pathogen / Fetal / Right -->
+        <div class="track-column flex flex-col gap-4">
+            <div class="glass-panel px-4 py-2.5 rounded-xl text-center font-bold text-white border-l-4 border-teal-500 bg-teal-500/10">
+                <span id="track-b-name">Track B / Fetal / Pathogen</span>
+            </div>
+            <div id="track-b-list" class="flex flex-col gap-4">
+                <!-- Track B events -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- SCRIPT -->
+<script>
+    document.getElementById('template-name-label').innerText = 'Parallel Branching Timeline';
+
+    const COLOR_MAP = {
+        purple: { stroke: "var(--accent, #c084fc)", bg: "bg-[var(--accent-bg,rgba(124,58,237,0.1))] text-[var(--accent-text,#c084fc)] border-[var(--accent-border,rgba(124,58,237,0.2))]" },
+        teal: { stroke: "#2dd4bf", bg: "bg-teal-500/10 text-teal-400 border-teal-500/20" },
+        coral: { stroke: "#fb923c", bg: "bg-orange-500/10 text-orange-400 border-orange-500/20" },
+        blue: { stroke: "#60a5fa", bg: "bg-blue-500/10 text-blue-400 border-blue-500/20" },
+        amber: { stroke: "#fbbf24", bg: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20" }
+    };
+
+    function renderBranching() {
+        const listA = document.getElementById('track-a-list');
+        const listB = document.getElementById('track-b-list');
+        
+        listA.innerHTML = '';
+        listB.innerHTML = '';
+
+        const title = VISUAL_DATA.title || "Parallel Branching Timeline";
+        document.getElementById('timeline-title').innerText = title;
+
+        // Auto-detect track names from topic
+        const lowerTitle = title.toLowerCase();
+        let trackAName = "Host / Maternal Changes";
+        let trackBName = "Pathogen / Fetal Changes";
+
+        if (lowerTitle.includes("maternal") || lowerTitle.includes("fetal") || lowerTitle.includes("pregnancy")) {
+            trackAName = "🤰 Maternal / Mother Changes";
+            trackBName = "👶 Fetal / Development";
+        } else if (lowerTitle.includes("pathogen") || lowerTitle.includes("viral") || lowerTitle.includes("infection") || lowerTitle.includes("immune")) {
+            trackAName = "🛡️ Host / Immune Defense";
+            trackBName = "👾 Pathogen / Viral Load";
+        } else {
+            trackAName = "Track A (Primary Context)";
+            trackBName = "Track B (Response/Secondary)";
+        }
+
+        document.getElementById('track-a-name').innerText = trackAName;
+        document.getElementById('track-b-name').innerText = trackBName;
+
+        const events = VISUAL_DATA.events || [];
+
+        events.forEach((event, idx) => {
+            const colorConfig = COLOR_MAP[event.color] || COLOR_MAP.purple;
+            
+            // Text keyword sorting
+            const checkText = (event.label + " " + event.detail).toLowerCase();
+            let isTrackA = true;
+
+            if (lowerTitle.includes("maternal") || lowerTitle.includes("fetal") || lowerTitle.includes("pregnancy")) {
+                if (checkText.includes("fetal") || checkText.includes("fetus") || checkText.includes("baby") || checkText.includes("embryo") || checkText.includes("gestation") || checkText.includes("heartbeat")) {
+                    isTrackA = false;
+                }
+            } else if (lowerTitle.includes("pathogen") || lowerTitle.includes("viral") || lowerTitle.includes("infection") || lowerTitle.includes("immune")) {
+                if (checkText.includes("pathogen") || checkText.includes("virus") || checkText.includes("viral") || checkText.includes("bacteria") || checkText.includes("replicate") || checkText.includes("toxin")) {
+                    isTrackA = false;
+                }
+            } else {
+                // Alternating default
+                isTrackA = idx % 2 === 0;
+            }
+
+            const card = document.createElement('div');
+            card.setAttribute('class', 'branch-card glass-panel p-5 rounded-2xl flex flex-col gap-2 shadow-lg');
+            card.setAttribute('style', `--accent: ${colorConfig.stroke};`);
+
+            card.innerHTML = `
+                <div class="flex items-center flex-wrap gap-2">
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold border ${colorConfig.bg}">
+                        ${event.time}
+                    </span>
+                    <h3 class="text-sm font-bold text-white leading-snug">${event.label}</h3>
+                </div>
+                <p class="text-zinc-400 text-xs mt-1 leading-relaxed">${event.detail}</p>
+            `;
+
+            if (isTrackA) {
+                listA.appendChild(card);
+            } else {
+                listB.appendChild(card);
+            }
+        });
+
+        // Safe empty checks
+        if (listA.children.length === 0) {
+            listA.innerHTML = '<div class="text-center py-8 text-zinc-600 text-xs">No entries assigned to Track A</div>';
+        }
+        if (listB.children.length === 0) {
+            listB.innerHTML = '<div class="text-center py-8 text-zinc-600 text-xs">No entries assigned to Track B</div>';
+        }
+    }
+
+    renderBranching();
+</script>

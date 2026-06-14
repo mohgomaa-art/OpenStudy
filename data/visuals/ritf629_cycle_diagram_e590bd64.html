@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html data-theme="clinical" lang="en" data-theme="clinical">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Study Companion Cycle</title>
+    <style>
+        /* Theme Definitions */
+        :root { /* Defaulting to clinical */
+            --bg: #f8fafc; --surface: #ffffff; --border: #e2e8f0; --text: #0f172a; --text-secondary: #64748b; --accent: #2563eb; --accent-soft: #dbeafe; --accent-2: #0d9488; --accent-2-soft: #ccfbf1; --success: #16a34a; --warning: #d97706; --danger: #dc2626;
+        }
+        [data-theme="clinical"] {
+            --bg: #f8fafc; --surface: #ffffff; --border: #e2e8f0; --text: #0f172a; --text-secondary: #64748b; --accent: #2563eb; --accent-soft: #dbeafe; --accent-2: #0d9488; --accent-2-soft: #ccfbf1; --success: #16a34a; --warning: #d97706; --danger: #dc2626;
+        }
+        [data-theme="nightshift"] {
+            --bg: #0a0e17; --surface: #131a26; --border: rgba(255,255,255,0.08); --text: #e2e8f0; --text-secondary: #94a3b8; --accent: #38bdf8; --accent-soft: rgba(56,189,248,0.15); --accent-2: #a78bfa; --accent-2-soft: rgba(167,139,250,0.15); --success: #4ade80; --warning: #fbbf24; --danger: #f87171;
+        }
+        [data-theme="botanica"] {
+            --bg: #f6f8f1; --surface: #ffffff; --border: #dde6d5; --text: #2b3a26; --text-secondary: #6b7d63; --accent: #4d7c4a; --accent-soft: #e3ecdf; --accent-2: #c9852f; --accent-2-soft: #f6e6cf; --success: #4d7c4a; --warning: #c9852f; --danger: #b3473a;
+        }
+        [data-theme="bloom"] {
+            --bg: #fff5f7; --surface: #ffffff; --border: #fbd5e0; --text: #4a2540; --text-secondary: #9c7a8f; --accent: #ec4899; --accent-soft: #fce7f3; --accent-2: #14b8a6; --accent-2-soft: #ccfbf1; --success: #22c55e; --warning: #f59e0b; --danger: #e11d48;
+        }
+        [data-theme="solstice"] {
+            --bg: #fff8f0; --surface: #ffffff; --border: #fde4cf; --text: #3a2418; --text-secondary: #8a6a55; --accent: #f97316; --accent-soft: #ffedd5; --accent-2: #0ea5e9; --accent-2-soft: #e0f2fe; --success: #65a30d; --warning: #eab308; --danger: #dc2626;
+        }
+        [data-theme="arcane"] {
+            --bg: #0d0a1a; --surface: #1a1430; --border: rgba(167, 139, 250, 0.15); --text: #f1eaff; --text-secondary: #a89bc4; --accent: #c084fc; --accent-soft: rgba(192, 132, 252, 0.15); --accent-2: #2dd4bf; --accent-2-soft: rgba(45, 212, 191, 0.15); --success: #34d399; --warning: #fbbf24; --danger: #fb7185;
+        }
+
+        /* Base Styles */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background-color: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            padding: 20px;
+            box-sizing: border-box;
+            overflow: auto;
+        }
+
+        .container {
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 900px;
+            width: 100%;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        .header h1 {
+            color: var(--accent);
+            margin-bottom: 10px;
+            font-size: 2.2em;
+        }
+
+        .header p {
+            color: var(--text-secondary);
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+
+        /* Cycle Diagram Layout */
+        .cycle-diagram {
+            position: relative;
+            --node-size: 150px; /* Base node size */
+            width: calc(var(--node-size) * 4); /* Diagram width based on node size */
+            height: calc(var(--node-size) * 4); /* Diagram height based on node size */
+            max-width: 90vmin; /* Responsive sizing */
+            max-height: 90vmin; /* Responsive sizing */
+            margin: 40px auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .cycle-center-info {
+            position: absolute;
+            width: 50%;
+            height: 50%;
+            background-color: var(--accent-soft);
+            border: 1px solid var(--accent);
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            box-sizing: border-box;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .cycle-center-info h2 {
+            color: var(--accent);
+            margin-bottom: 10px;
+            font-size: 1.5em;
+        }
+
+        .cycle-center-info p {
+            color: var(--text);
+            font-size: 1em;
+        }
+
+        .cycle-node {
+            position: absolute;
+            width: var(--node-size);
+            height: var(--node-size);
+            background-color: var(--surface);
+            border: 2px solid var(--border);
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            padding: 10px;
+            box-sizing: border-box;
+        }
+
+        .cycle-node:hover {
+            border-color: var(--accent);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            transform: translateY(-3px);
+        }
+
+        .cycle-node.active {
+            border-color: var(--accent);
+            background-color: var(--accent-soft);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+            transform: scale(1.05);
+        }
+
+        .node-number {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: var(--accent);
+            margin-bottom: 5px;
+            line-height: 1;
+        }
+
+        .node-label {
+            font-size: 1em;
+            color: var(--text);
+            font-weight: 500;
+        }
+
+        /* Node Positioning (relative to the diagram corners) */
+        .node-1 { top: 0; right: 0; }
+        .node-2 { bottom: 0; right: 0; }
+        .node-3 { bottom: 0; left: 0; }
+        .node-4 { top: 0; left: 0; }
+
+        /* Arrows */
+        .arrow {
+            position: absolute;
+            background-color: var(--border);
+            height: 2px;
+            z-index: -1;
+            transition: background-color 0.3s ease;
+        }
+        .arrow.active {
+            background-color: var(--accent);
+        }
+        .arrow::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 0;
+            border-style: solid;
+            transition: border-color 0.3s ease;
+        }
+        .arrow.active::after {
+            border-color: transparent transparent transparent var(--accent); /* Default for right arrow */
+        }
+
+        /* Arrow 1-2: From Node 1 (top-right) to Node 2 (bottom-right) - Vertical */
+        .arrow-1-2 {
+            top: var(--node-size); /* Start from bottom edge of node 1 */
+            right: calc(var(--node-size) / 2 - 1px); /* Center on right edge of diagram */
+            width: 2px;
+            height: calc(100% - var(--node-size) * 2); /* Diagram height - 2*node_height */
+        }
+        .arrow-1-2::after {
+            border-width: 10px 6px 0 6px; /* Downward arrow */
+            border-color: var(--border) transparent transparent transparent;
+            bottom: -10px; /* Position at the end */
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        .arrow-1-2.active::after {
+            border-color: var(--accent) transparent transparent transparent;
+        }
+
+        /* Arrow 2-3: From Node 2 (bottom-right) to Node 3 (bottom-left) - Horizontal */
+        .arrow-2-3 {
+            bottom: calc(var(--node-size) / 2 - 1px); /* Center on bottom edge of diagram */
+            right: var(--node-size); /* Start from left edge of node 2 */
+            width: calc(100% - var(--node-size) * 2); /* Diagram width - 2*node_width */
+            height: 2px;
+        }
+        .arrow-2-3::after {
+            border-width: 6px 10px 6px 0; /* Leftward arrow */
+            border-color: transparent var(--border) transparent transparent;
+            left: -10px; /* Position at the end */
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        .arrow-2-3.active::after {
+            border-color: transparent var(--accent) transparent transparent;
+        }
+
+        /* Arrow 3-4: From Node 3 (bottom-left) to Node 4 (top-left) - Vertical */
+        .arrow-3-4 {
+            bottom: var(--node-size); /* Start from top edge of node 3 */
+            left: calc(var(--node-size) / 2 - 1px); /* Center on left edge of diagram */
+            width: 2px;
+            height: calc(100% - var(--node-size) * 2);
+        }
+        .arrow-3-4::after {
+            border-width: 0 6px 10px 6px; /* Upward arrow */
+            border-color: transparent transparent var(--border) transparent;
+            top: -10px; /* Position at the end */
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        .arrow-3-4.active::after {
+            border-color: transparent transparent var(--accent) transparent;
+        }
+
+        /* Arrow 4-1: From Node 4 (top-left) to Node 1 (top-right) - Horizontal */
+        .arrow-4-1 {
+            top: calc(var(--node-size) / 2 - 1px); /* Center on top edge of diagram */
+            left: var(--node-size); /* Start from right edge of node 4 */
+            width: calc(100% - var(--node-size) * 2);
+            height: 2px;
+        }
+        .arrow-4-1::after {
+            border-width: 6px 0 6px 10px; /* Rightward arrow */
+            border-color: transparent transparent transparent var(--border);
+            right: -10px; /* Position at the end */
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        .arrow-4-1.active::after {
+            border-color: transparent transparent transparent var(--accent);
+        }
+
+        /* Media Queries for Responsiveness */
+        @media (max-width: 768px) {
+            .container { padding: 20px; max-width: 100%; }
+            .header h1 { font-size: 1.8em; }
+            .header p { font-size: 0.95em; }
+            .cycle-diagram { --node-size: 120px; margin: 20px auto; }
+            .cycle-node { font-size: 0.9em; padding: 5px; }
+            .node-number { font-size: 2em; }
+            .node-label { font-size: 0.9em; }
+            .cycle-center-info { width: 60%; height: 60%; padding: 15px; }
+            .cycle-center-info h2 { font-size: 1.2em; }
+            .cycle-center-info p { font-size: 0.9em; }
+        }
+
+        @media (max-width: 480px) {
+            body { padding: 10px; }
+            .container { padding: 15px; }
+            .header h1 { font-size: 1.5em; }
+            .header p { font-size: 0.85em; }
+            .cycle-diagram { --node-size: 100px; }
+            .cycle-node { font-size: 0.8em; }
+            .node-number { font-size: 1.8em; }
+            .node-label { font-size: 0.8em; }
+            .cycle-center-info h2 { font-size: 1em; }
+            .cycle-center-info p { font-size: 0.8em; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Your Study Companion Cycle</h1>
+            <p>Understand how to interact with your AI study companion to get the most out of it.</p>
+        </div>
+        <div class="cycle-diagram">
+            <div class="cycle-center-info">
+                <h2 id="info-title">Welcome!</h2>
+                <p id="info-content">Click on any step to learn more about how to use your study companion.</p>
+            </div>
+
+            <div class="cycle-node node-1" data-step="1">
+                <div class="node-number">1</div>
+                <div class="node-label">Upload Document</div>
+            </div>
+            <div class="cycle-node node-2" data-step="2">
+                <div class="node-number">2</div>
+                <div class="node-label">Ask Question</div>
+            </div>
+            <div class="cycle-node node-3" data-step="3">
+                <div class="node-number">3</div>
+                <div class="node-label">Companion Processes</div>
+            </div>
+            <div class="cycle-node node-4" data-step="4">
+                <div class="node-number">4</div>
+                <div class="node-label">Receive Answer</div>
+            </div>
+
+            <!-- Arrows connect the flow between steps -->
+            <div class="arrow arrow-1-2" data-arrow="1-2"></div>
+            <div class="arrow arrow-2-3" data-arrow="2-3"></div>
+            <div class="arrow arrow-3-4" data-arrow="3-4"></div>
+            <div class="arrow arrow-4-1" data-arrow="4-1"></div>
+        </div>
+    </div>
+
+    <script>
+        const stepDetails = {
+            1: {
+                title: "Step 1: Upload Your Document",
+                content: "To begin, please upload your document. This is the foundation for our study session.",
+                arrow: "4-1" // The arrow that leads TO this step
+            },
+            2: {
+                title: "Step 2: Ask a Specific Question",
+                content: "After uploading, ask me a specific question about its content. I'm ready to assist you as your dedicated study companion.",
+                arrow: "1-2"
+            },
+            3: {
+                title: "Step 3: Companion Processes Information",
+                content: "I am configured to strictly use the information provided in your uploaded files to answer your queries. I cannot access external information or make assumptions.",
+                arrow: "2-3"
+            },
+            4: {
+                title: "Step 4: Receive Your Answer",
+                content: "I will provide a precise answer based solely on the content you've provided. Looking forward to helping you study!",
+                arrow: "3-4"
+            }
+        };
+
+        const infoTitle = document.getElementById('info-title');
+        const infoContent = document.getElementById('info-content');
+        const cycleNodes = document.querySelectorAll('.cycle-node');
+        const arrows = document.querySelectorAll('.arrow');
+
+        function updateInfo(step) {
+            // Remove active class from all nodes and arrows
+            cycleNodes.forEach(node => node.classList.remove('active'));
+            arrows.forEach(arrow => arrow.classList.remove('active'));
+
+            // Set active class on the clicked node
+            const activeNode = document.querySelector(`.cycle-node[data-step="${step}"]`);
+            if (activeNode) {
+                activeNode.classList.add('active');
+            }
+
+            // Set active class on the arrow that leads TO this step
+            const activeArrowId = stepDetails[step].arrow;
+            const activeArrow = document.querySelector(`.arrow[data-arrow="${activeArrowId}"]`);
+            if (activeArrow) {
+                activeArrow.classList.add('active');
+            }
+
+            // Update info box content
+            infoTitle.textContent = stepDetails[step].title;
+            infoContent.textContent = stepDetails[step].content;
+        }
+
+        cycleNodes.forEach(node => {
+            node.addEventListener('click', () => {
+                const step = node.dataset.step;
+                updateInfo(step);
+            });
+        });
+
+        // Optional: Set an initial active step or keep the welcome message
+        // updateInfo(1); // Uncomment to start with Step 1 active
+    </script>
+<script>(function(){var _last=0;function rh(){var h=0;var children=document.body?document.body.children:[];for(var i=0;i<children.length;i++){var r=children[i].getBoundingClientRect();var b=r.bottom+(window.scrollY||0);if(b>h)h=b;}if(h<100)h=document.documentElement.scrollHeight;h=Math.round(h);if(h>_last){_last=h;window.parent.postMessage({__visualHeight:h},"*");}}window.reportHeight=rh;setTimeout(rh,120);setTimeout(rh,600);setTimeout(rh,1800);if(window.MutationObserver){new MutationObserver(function(){setTimeout(rh,60);}).observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:["class","style","hidden","open"],characterData:false});}window.addEventListener("message",function(e){if(e.data&&e.data.__setTheme){document.documentElement.setAttribute("data-theme",e.data.__setTheme);setTimeout(rh,80);}});})()</script></body>
+</html>

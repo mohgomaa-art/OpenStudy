@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html data-theme="clinical" lang="en" data-theme="clinical">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pathophysiology of Acute Kidney Injury</title>
+    <style>
+        :root {
+            /* clinical: Light clinical (blue + teal) */
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --border: #e2e8f0;
+            --text: #0f172a;
+            --text-secondary: #64748b;
+            --accent: #2563eb;
+            --accent-soft: #dbeafe;
+            --accent-2: #0d9488;
+            --accent-2-soft: #ccfbf1;
+            --success: #16a34a;
+            --warning: #d97706;
+            --danger: #dc2626;
+        }
+        [data-theme="nightshift"] {
+            /* nightshift: Dark tech (sky-cyan + violet) */
+            --bg: #0a0e17;
+            --surface: #131a26;
+            --border: rgba(255,255,255,0.08);
+            --text: #e2e8f0;
+            --text-secondary: #94a3b8;
+            --accent: #38bdf8;
+            --accent-soft: rgba(56,189,248,0.15);
+            --accent-2: #a78bfa;
+            --accent-2-soft: rgba(167,139,250,0.15);
+            --success: #4ade80;
+            --warning: #fbbf24;
+            --danger: #f87171;
+        }
+        [data-theme="botanica"] {
+            /* botanica: Green/nature (sage + terracotta) */
+            --bg: #f6f8f1;
+            --surface: #ffffff;
+            --border: #dde6d5;
+            --text: #2b3a26;
+            --text-secondary: #6b7d63;
+            --accent: #4d7c4a;
+            --accent-soft: #e3ecdf;
+            --accent-2: #c9852f;
+            --accent-2-soft: #f6e6cf;
+            --success: #4d7c4a;
+            --warning: #c9852f;
+            --danger: #b3473a;
+        }
+        [data-theme="bloom"] {
+            /* bloom: Warm/playful (pink + teal) */
+            --bg: #fff5f7;
+            --surface: #ffffff;
+            --border: #fbd5e0;
+            --text: #4a2540;
+            --text-secondary: #9c7a8f;
+            --accent: #ec4899;
+            --accent-soft: #fce7f3;
+            --accent-2: #14b8a6;
+            --accent-2-soft: #ccfbf1;
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --danger: #e11d48;
+        }
+        [data-theme="solstice"] {
+            /* solstice: Warm/energetic (orange + sky-blue) */
+            --bg: #fff8f0;
+            --surface: #ffffff;
+            --border: #fde4cf;
+            --text: #3a2418;
+            --text-secondary: #8a6a55;
+            --accent: #f97316;
+            --accent-soft: #ffedd5;
+            --accent-2: #0ea5e9;
+            --accent-2-soft: #e0f2fe;
+            --success: #65a30d;
+            --warning: #eab308;
+            --danger: #dc2626;
+        }
+        [data-theme="arcane"] {
+            /* arcane: Dark fantasy/neon (violet/magenta + teal) */
+            --bg: #0d0a1a;
+            --surface: #1a1430;
+            --border: rgba(167, 139, 250, 0.15);
+            --text: #f1eaff;
+            --text-secondary: #a89bc4;
+            --accent: #c084fc;
+            --accent-soft: rgba(192, 132, 252, 0.15);
+            --accent-2: #2dd4bf;
+            --accent-2-soft: rgba(45, 212, 191, 0.15);
+            --success: #34d399;
+            --warning: #fbbf24;
+            --danger: #fb7185;
+        }
+
+        /* General styles */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        h1, h2, h3, h4, h5, h6 {
+            color: var(--text);
+            margin-top: 0;
+            margin-bottom: 0.5em;
+        }
+        p, li {
+            color: var(--text-secondary);
+            margin-top: 0;
+            margin-bottom: 0.8em;
+        }
+        strong {
+            color: var(--text);
+        }
+        ul {
+            list-style-type: disc;
+            padding-left: 25px;
+            margin-bottom: 1em;
+        }
+        ul li::marker {
+            color: var(--accent);
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1000px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 25px;
+        }
+
+        .flowchart-node {
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px 25px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.04);
+            width: 100%;
+            transition: all 0.2s ease-in-out;
+            box-sizing: border-box;
+        }
+        .flowchart-node:hover {
+            border-color: var(--accent);
+            box-shadow: 0 6px 15px rgba(0,0,0,0.08);
+            transform: translateY(-2px);
+        }
+
+        .node-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            padding: 5px 0;
+            margin-bottom: 5px;
+        }
+        .node-header h1 {
+            font-size: 1.8em;
+            color: var(--accent);
+            margin-bottom: 0;
+        }
+        .node-header h2 {
+            font-size: 1.4em;
+            color: var(--accent);
+            margin-bottom: 0;
+        }
+        .node-header h3 {
+            font-size: 1.2em;
+            color: var(--accent);
+            margin-bottom: 0;
+        }
+
+        .node-toggle-btn {
+            background: none;
+            border: none;
+            font-size: 1.8em;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 0 5px;
+            line-height: 1;
+            transition: color 0.2s ease;
+        }
+        .node-toggle-btn:hover {
+            color: var(--accent);
+        }
+
+        .node-details {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease-out, padding-top 0.4s ease-out;
+            padding-top: 0;
+        }
+        .node-details.expanded {
+            max-height: 1500px; /* Sufficiently large to cover all content */
+            padding-top: 15px;
+        }
+        .node-details p:last-child,
+        .node-details ul:last-child {
+            margin-bottom: 0;
+        }
+
+        /* Specific styling for the main AKI node */
+        #aki-main-node {
+            background-color: var(--accent-soft);
+            border-color: var(--accent);
+            text-align: center;
+            padding-bottom: 15px;
+        }
+        #aki-main-node .node-header {
+            justify-content: center;
+            margin-bottom: 10px;
+        }
+        #aki-main-node .node-header h1 {
+            font-size: 2.2em;
+            margin-bottom: 0;
+        }
+        #aki-main-node .node-toggle-btn {
+            display: none; /* Main node details always expanded */
+        }
+        #aki-main-node .node-details {
+            max-height: fit-content; /* Ensure it's always visible */
+            padding-top: 0;
+            overflow: visible;
+        }
+        #aki-main-node p {
+            color: var(--text);
+            font-size: 1.1em;
+        }
+
+        /* Layout for the three main types */
+        .aki-types-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 25px;
+            width: 100%;
+        }
+        @media (min-width: 768px) {
+            .aki-types-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        .aki-types-grid .flowchart-node {
+            padding: 18px 22px;
+        }
+        .aki-types-grid .node-header h2 {
+            font-size: 1.25em;
+        }
+        .aki-types-grid .node-details h3 {
+            color: var(--text); /* Sub-headers inside details can be --text */
+            font-size: 1.05em;
+            margin-top: 1em;
+            margin-bottom: 0.5em;
+        }
+
+        /* Additional info card */
+        .info-card {
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+            width: 100%;
+            max-width: 700px;
+            margin-top: 25px;
+            box-sizing: border-box;
+        }
+        .info-card h3 {
+            color: var(--accent-2);
+            font-size: 1.5em;
+            margin-top: 0;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 12px;
+            margin-bottom: 18px;
+        }
+        .info-card p, .info-card ul {
+            color: var(--text-secondary);
+            margin-bottom: 1em;
+        }
+        .info-card p strong {
+            color: var(--text);
+        }
+        .info-card ul {
+            padding-left: 20px;
+            list-style-type: none; /* Remove default bullet for mnemonics */
+        }
+        .info-card ul li {
+            position: relative;
+            padding-left: 15px;
+            margin-bottom: 0.5em;
+        }
+        .info-card ul li::before {
+            content: "•";
+            color: var(--accent-2);
+            position: absolute;
+            left: 0;
+            top: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="aki-main-node" class="flowchart-node">
+            <div class="node-header" role="button" aria-expanded="true" aria-controls="aki-main-details">
+                <h1>Pathophysiology of Acute Kidney Injury</h1>
+            </div>
+            <div id="aki-main-details" class="node-details expanded">
+                <p>Acute Kidney Injury (AKI) is a complex syndrome characterized by a rapid decline in kidney function, leading to the accumulation of waste products and dysregulation of fluid and electrolyte balance. The pathophysiology of AKI can be broadly categorized into three main types based on the location of the insult:</p>
+            </div>
+        </div>
+
+        <div class="aki-types-grid">
+            <div class="flowchart-node" id="prerenal-aki">
+                <div class="node-header" role="button" aria-expanded="false" aria-controls="prerenal-details">
+                    <h2>1. Prerenal AKI</h2>
+                    <button class="node-toggle-btn" aria-label="Toggle details for Prerenal AKI">+</button>
+                </div>
+                <div id="prerenal-details" class="node-details">
+                    <p>This is the most common form of AKI and results from <strong>inadequate renal perfusion</strong>, meaning there is insufficient blood flow to the kidneys. The kidney itself is structurally intact, but its function is impaired due to hypoperfusion.</p>
+                    <h3>Common causes:</h3>
+                    <ul>
+                        <li><strong>Hypovolemia</strong>: Hemorrhage, severe dehydration, excessive fluid loss (vomiting, diarrhea, burns).</li>
+                        <li><strong>Decreased effective circulating volume</strong>: Congestive heart failure, liver cirrhosis with ascites, nephrotic syndrome.</li>
+                        <li><strong>Systemic vasodilation</strong>: Sepsis, anaphylaxis.</li>
+                        <li><strong>Renal vasoconstriction</strong>: NSAIDs, hepatorenal syndrome.</li>
+                    </ul>
+                    <p><em>Note: Often reversible if corrected promptly. Prolonged severe prerenal AKI can progress to intrinsic AKI.</em></p>
+                </div>
+            </div>
+
+            <div class="flowchart-node" id="intrinsic-aki">
+                <div class="node-header" role="button" aria-expanded="false" aria-controls="intrinsic-details">
+                    <h2>2. Intrinsic (or Intrarenal) AKI</h2>
+                    <button class="node-toggle-btn" aria-label="Toggle details for Intrinsic AKI">+</button>
+                </div>
+                <div id="intrinsic-details" class="node-details">
+                    <p>This type of AKI involves <strong>direct damage to the kidney tissue itself</strong>, affecting the glomeruli, tubules, interstitium, or renal vasculature.</p>
+                    <h3>Most common cause: Acute Tubular Necrosis (ATN)</h3>
+                    <ul>
+                        <li><strong>Ischemic ATN</strong>: Consequence of severe/prolonged prerenal AKI, leading to sustained hypoperfusion.</li>
+                        <li><strong>Nephrotoxic ATN</strong>: Exposure to exogenous agents (aminoglycosides, contrast dyes, cisplatin) or endogenous toxins (myoglobin from rhabdomyolysis, hemoglobin from hemolysis).</li>
+                    </ul>
+                    <h3>Other causes:</h3>
+                    <ul>
+                        <li><strong>Glomerulonephritis</strong>: Inflammation of the glomeruli, often autoimmune in nature.</li>
+                        <li><strong>Acute Interstitial Nephritis (AIN)</strong>: Inflammation of the renal interstitium, commonly drug-induced (e.g., penicillin, NSAIDs).</li>
+                        <li><strong>Vascular disorders</strong>: Conditions like vasculitis, thrombotic microangiopathies, or renal artery stenosis/embolism.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="flowchart-node" id="postrenal-aki">
+                <div class="node-header" role="button" aria-expanded="false" aria-controls="postrenal-details">
+                    <h2>3. Postrenal AKI</h2>
+                    <button class="node-toggle-btn" aria-label="Toggle details for Postrenal AKI">+</button>
+                </div>
+                <div id="postrenal-details" class="node-details">
+                    <p>This form of AKI occurs due to <strong>obstruction of urine flow</strong> anywhere from the renal pelvis to the urethra. The obstruction causes a backup of urine pressure, leading to increased pressure within Bowman's capsule, which in turn reduces the glomerular filtration rate (GFR).</p>
+                    <ul>
+                        <li><strong>Unilateral obstruction</strong>: If only one kidney's outflow is obstructed, the other kidney can compensate, so AKI may not be evident unless the other kidney is already impaired.</li>
+                        <li><strong>Bilateral obstruction</strong>: Obstruction affecting both kidneys or the outflow of a solitary kidney is necessary to cause significant AKI.</li>
+                    </ul>
+                    <h3>Common causes:</h3>
+                    <ul>
+                        <li><strong>Kidney stones (nephrolithiasis)</strong>: Can obstruct the ureters.</li>
+                        <li><strong>Benign Prostatic Hyperplasia (BPH) / prostate cancer</strong>: Common causes of bladder outlet obstruction in men.</li>
+                        <li><strong>Tumors</strong>: Pelvic tumors compressing the ureters or bladder.</li>
+                        <li><strong>Blood clots</strong>: In the urinary tract.</li>
+                        <li><strong>Neurogenic bladder</strong>: Impaired bladder emptying due to neurological dysfunction.</li>
+                    </ul>
+                    <p><em>Note: Often reversible if the obstruction is relieved promptly.</em></p>
+                </div>
+            </div>
+        </div>
+
+        <div class="info-card">
+            <h3>Disease Overview</h3>
+            <p><strong>Presentation:</strong> Rapid decline in kidney function, accumulation of waste products (e.g., creatinine, urea), fluid and electrolyte imbalances. Symptoms vary depending on severity and underlying cause, and may include oliguria/anuria, edema, nausea, fatigue, shortness of breath.</p>
+            <p><strong>Diagnosis:</strong> Based on an abrupt decrease in kidney function, typically measured by an increase in serum creatinine or a decrease in urine output, according to established criteria (e.g., KDIGO, RIFLE).</p>
+            <p><strong>Treatment:</strong> Management focuses on treating the underlying cause, optimizing fluid status, managing electrolyte imbalances, and avoiding further nephrotoxic insults. Renal replacement therapy (dialysis) may be required in severe cases.</p>
+            <p><strong>Mnemonic:</strong> PRINTS (Prerenal, Intrinsic, Postrenal, Toxins, Sepsis) - <em>Note: This mnemonic primarily covers causes rather than pathophysiology categories directly.</em></p>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const toggleHeaders = document.querySelectorAll('.flowchart-node .node-header');
+
+            toggleHeaders.forEach(header => {
+                const button = header.querySelector('.node-toggle-btn');
+                const detailsId = button ? button.getAttribute('aria-controls') : null;
+                const details = detailsId ? document.getElementById(detailsId) : null;
+
+                // Handle main node which has no toggle button and is always expanded
+                if (!button || !details) {
+                    if (header.closest('#aki-main-node')) {
+                        const mainDetails = document.getElementById('aki-main-details');
+                        if (mainDetails) {
+                            mainDetails.classList.add('expanded');
+                            header.setAttribute('aria-expanded', 'true');
+                        }
+                    }
+                    return; // Skip if no button or details (like the main node)
+                }
+
+                // Initialize state for other nodes
+                const isExpanded = details.classList.contains('expanded');
+                button.textContent = isExpanded ? '−︎' : '+';
+                header.setAttribute('aria-expanded', String(isExpanded));
+
+                header.addEventListener('click', () => {
+                    const expanded = header.getAttribute('aria-expanded') === 'true';
+                    header.setAttribute('aria-expanded', String(!expanded));
+                    details.classList.toggle('expanded');
+                    button.textContent = expanded ? '+' : '−︎';
+                });
+            });
+        });
+    </script>
+<script>(function(){function rh(){var h=document.documentElement.scrollHeight||document.body.scrollHeight;if(h)window.parent.postMessage({__visualHeight:h},"*");}setTimeout(rh,150);setTimeout(rh,700);setTimeout(rh,2000);window.addEventListener("resize",rh);window.addEventListener("message",function(e){if(e.data&&e.data.__setTheme){document.documentElement.setAttribute("data-theme",e.data.__setTheme);setTimeout(rh,100);}});})()</script></body>
+</html>

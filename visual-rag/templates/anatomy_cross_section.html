@@ -1,0 +1,305 @@
+<!-- HEAD -->
+<style>
+    .anatomy-svg {
+        background-color: #07070a;
+    }
+    .layer-path {
+        cursor: pointer;
+        transition: fill 0.3s, stroke 0.3s, filter 0.3s;
+    }
+    .layer-path:hover {
+        fill-opacity: 0.35;
+        filter: drop-shadow(0 0 8px var(--glow-color));
+    }
+    .layer-path.is-active {
+        fill-opacity: 0.5;
+        stroke-width: 2.5px;
+        filter: drop-shadow(0 0 12px var(--glow-color));
+    }
+    .tab-btn {
+        transition: border-color 0.2s, text-shadow 0.2s, color 0.2s;
+    }
+    .tab-btn.is-active {
+        border-bottom-color: #a78bfa;
+        color: #ffffff;
+    }
+</style>
+
+<!-- BODY -->
+<div class="w-full flex flex-col lg:flex-row gap-6 animate-fade-in px-2 max-w-6xl">
+    <!-- Left Panel: Interactive Vector Anatomy Map -->
+    <div class="w-full lg:w-[450px] flex-shrink-0 glass-panel rounded-2xl overflow-hidden relative flex flex-col p-4 bg-zinc-950/20 items-center justify-center min-h-[420px]">
+        <div class="absolute top-4 left-4 flex flex-col gap-1">
+            <span class="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Vector Cross-Section</span>
+            <span id="structure-type-label" class="text-xs text-white font-semibold">Detecting structure...</span>
+        </div>
+        
+        <svg id="canvas" class="w-full max-w-[360px] h-[360px] anatomy-svg rounded-xl" viewBox="0 0 400 400">
+            <!-- Dynamic SVG elements will go here -->
+        </svg>
+
+        <div class="absolute bottom-4 text-[10px] text-zinc-500 text-center pointer-events-none">
+            Click on layers or rings to inspect anatomical structures
+        </div>
+    </div>
+
+    <!-- Right Panel: Medical Detail Display Sheet -->
+    <div class="flex-grow glass-panel rounded-2xl p-6 bg-zinc-950/45 flex flex-col gap-4">
+        <!-- Header Info -->
+        <div class="flex justify-between items-start border-b border-zinc-900 pb-3">
+            <div class="flex flex-col gap-1">
+                <span class="text-xs text-purple-400 font-bold uppercase tracking-wider" id="active-layer-badge">Select a Layer</span>
+                <h3 class="text-2xl font-bold text-white leading-tight" id="active-layer-title">Anatomy Inspector</h3>
+            </div>
+            <div class="px-2.5 py-1 rounded-full text-xs font-semibold bg-purple-500/10 text-purple-300 border border-purple-500/20" id="structure-badge">
+                Structure
+            </div>
+        </div>
+
+        <!-- Layer Details Body -->
+        <div id="details-view" class="flex flex-col gap-4">
+            <!-- Description & Components -->
+            <div class="flex flex-col gap-2">
+                <h4 class="text-sm font-semibold text-zinc-300">Description</h4>
+                <p id="layer-desc" class="text-zinc-400 text-sm leading-relaxed">Click any layer in the cross-section to view details about its anatomy, normal function, and clinical relevance.</p>
+            </div>
+
+            <!-- Components list -->
+            <div id="layer-components-container" class="hidden flex-col gap-2">
+                <h4 class="text-sm font-semibold text-zinc-300">Key Components</h4>
+                <div id="layer-components" class="flex flex-wrap gap-2">
+                    <!-- Chip badges -->
+                </div>
+            </div>
+
+            <!-- Tabs Navigation -->
+            <div class="flex border-b border-zinc-900 mt-2">
+                <button onclick="switchTab('anatomy')" id="tab-btn-anatomy" class="tab-btn is-active flex-1 text-center py-2 text-xs font-semibold text-zinc-500 border-b-2 border-transparent">
+                    Structure & Anatomy
+                </button>
+                <button onclick="switchTab('physiology')" id="tab-btn-physiology" class="tab-btn flex-1 text-center py-2 text-xs font-semibold text-zinc-500 border-b-2 border-transparent">
+                    Function & Physiology
+                </button>
+                <button onclick="switchTab('clinical')" id="tab-btn-clinical" class="tab-btn flex-1 text-center py-2 text-xs font-semibold text-zinc-500 border-b-2 border-transparent">
+                    Pathology & Clinical
+                </button>
+            </div>
+
+            <!-- Tab Content -->
+            <div class="mt-2 text-sm text-zinc-400 min-h-[120px] leading-relaxed">
+                <div id="tab-content-anatomy" class="tab-pane">
+                    Select a layer to view its structural/anatomical properties.
+                </div>
+                <div id="tab-content-physiology" class="tab-pane hidden">
+                    Select a layer to view its physiological role in the body.
+                </div>
+                <div id="tab-content-clinical" class="tab-pane hidden">
+                    Select a layer to view its associated pathologies, diseases, or drug interactions.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- SCRIPT -->
+<script>
+    document.getElementById('template-name-label').innerText = 'Anatomy Cross-Section Explorer';
+
+    const LAYER_COLORS = [
+        { fill: "rgba(167, 139, 250, 0.15)", stroke: "#a78bfa", glow: "rgba(167, 139, 250, 0.4)" }, // purple
+        { fill: "rgba(45, 212, 191, 0.15)", stroke: "#2dd4bf", glow: "rgba(45, 212, 191, 0.4)" },  // teal
+        { fill: "rgba(251, 146, 60, 0.15)", stroke: "#fb923c", glow: "rgba(251, 146, 60, 0.4)" },  // coral
+        { fill: "rgba(96, 165, 250, 0.15)", stroke: "#60a5fa", glow: "rgba(96, 165, 250, 0.4)" },  // blue
+        { fill: "rgba(251, 191, 36, 0.15)", stroke: "#fbbf24", glow: "rgba(251, 191, 36, 0.4)" }   // amber
+    ];
+
+    let activeLayerIndex = 0;
+    let activeTab = "anatomy";
+    let isConcentric = false;
+
+    function detectLayout() {
+        const structure = (VISUAL_DATA.organ_or_structure || "").toLowerCase();
+        const title = (VISUAL_DATA.title || "").toLowerCase();
+        
+        // Concentric keywords
+        const ringKeywords = ["artery", "vein", "vessel", "tubule", "concentric", "lumen", "ring", "aorta", "bronchus", "duct"];
+        isConcentric = ringKeywords.some(kw => structure.includes(kw) || title.includes(kw));
+        
+        document.getElementById('structure-type-label').innerText = isConcentric ? "Concentric Ring System" : "Stacked Tissue Wall";
+        document.getElementById('structure-badge').innerText = VISUAL_DATA.organ_or_structure || "Structure";
+    }
+
+    function renderAnatomy() {
+        const canvas = document.getElementById('canvas');
+        canvas.innerHTML = '';
+
+        const layers = VISUAL_DATA.layers || [];
+        if (layers.length === 0) return;
+
+        if (isConcentric) {
+            // Render concentric rings. Center of canvas is (200, 200)
+            const cx = 200;
+            const cy = 200;
+            const maxRadius = 180;
+            const ringCount = layers.length;
+            
+            // Draw from outer layer (idx 0) to inner layer (idx ringCount-1)
+            // Radii decrease linearly down to 50
+            const minRadius = 50;
+            const step = (maxRadius - minRadius) / Math.max(1, ringCount);
+
+            // 1. Draw outer-to-inner rings
+            layers.forEach((layer, idx) => {
+                const radius = maxRadius - (idx * step);
+                const colorConfig = LAYER_COLORS[idx % LAYER_COLORS.length];
+
+                const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                circle.setAttribute("cx", cx);
+                circle.setAttribute("cy", cy);
+                circle.setAttribute("r", radius);
+                circle.setAttribute("fill", colorConfig.fill);
+                circle.setAttribute("fill-opacity", "1");
+                circle.setAttribute("stroke", colorConfig.stroke);
+                circle.setAttribute("stroke-width", idx === activeLayerIndex ? "2.5" : "1.5");
+                circle.setAttribute("class", `layer-path ${idx === activeLayerIndex ? 'is-active' : ''}`);
+                circle.setAttribute("style", `--glow-color: ${colorConfig.glow}`);
+                circle.onclick = () => selectLayer(idx);
+
+                const tooltip = document.createElementNS("http://www.w3.org/2000/svg", "title");
+                tooltip.textContent = layer.name;
+                circle.appendChild(tooltip);
+
+                canvas.appendChild(circle);
+            });
+
+            // 2. Draw Lumen center circle
+            const lumenCircle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            lumenCircle.setAttribute("cx", cx);
+            lumenCircle.setAttribute("cy", cy);
+            lumenCircle.setAttribute("r", minRadius - step/2);
+            lumenCircle.setAttribute("fill", "#07070a");
+            lumenCircle.setAttribute("stroke", "#27272a");
+            lumenCircle.setAttribute("stroke-width", "1");
+            lumenCircle.setAttribute("stroke-dasharray", "4");
+            
+            const lumenText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            lumenText.setAttribute("x", cx);
+            lumenText.setAttribute("y", cy + 4);
+            lumenText.setAttribute("text-anchor", "middle");
+            lumenText.setAttribute("fill", "#52525b");
+            lumenText.setAttribute("font-size", "10px");
+            lumenText.setAttribute("font-weight", "bold");
+            lumenText.setAttribute("letter-spacing", "0.1em");
+            lumenText.textContent = "LUMEN";
+            
+            canvas.appendChild(lumenCircle);
+            canvas.appendChild(lumenText);
+
+        } else {
+            // Render stacked horizontal rectangles
+            const width = 360;
+            const totalHeight = 360;
+            const x = 20;
+            const startY = 20;
+            const layerCount = layers.length;
+            const layerHeight = (totalHeight - 40) / layerCount;
+
+            layers.forEach((layer, idx) => {
+                const y = startY + (idx * layerHeight);
+                const colorConfig = LAYER_COLORS[idx % LAYER_COLORS.length];
+
+                const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+                rect.setAttribute("x", x);
+                rect.setAttribute("y", y);
+                rect.setAttribute("width", width);
+                rect.setAttribute("height", layerHeight - 4); // small gap
+                rect.setAttribute("rx", "6");
+                rect.setAttribute("fill", colorConfig.fill);
+                rect.setAttribute("stroke", colorConfig.stroke);
+                rect.setAttribute("stroke-width", idx === activeLayerIndex ? "2.5" : "1.5");
+                rect.setAttribute("class", `layer-path ${idx === activeLayerIndex ? 'is-active' : ''}`);
+                rect.setAttribute("style", `--glow-color: ${colorConfig.glow}`);
+                rect.onclick = () => selectLayer(idx);
+
+                const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                label.setAttribute("x", 40);
+                label.setAttribute("y", y + (layerHeight / 2) + 4);
+                label.setAttribute("fill", "#ffffff");
+                label.setAttribute("font-size", "12px");
+                label.setAttribute("font-weight", "bold");
+                label.setAttribute("pointer-events", "none");
+                label.textContent = layer.name;
+
+                const tooltip = document.createElementNS("http://www.w3.org/2000/svg", "title");
+                tooltip.textContent = layer.name;
+                rect.appendChild(tooltip);
+
+                canvas.appendChild(rect);
+                canvas.appendChild(label);
+            });
+        }
+
+        updateDetails();
+    }
+
+    function selectLayer(index) {
+        activeLayerIndex = index;
+        renderAnatomy();
+    }
+
+    function updateDetails() {
+        const layers = VISUAL_DATA.layers || [];
+        const layer = layers[activeLayerIndex];
+        if (!layer) return;
+
+        document.getElementById('active-layer-badge').innerText = `Layer ${activeLayerIndex + 1} of ${layers.length}`;
+        document.getElementById('active-layer-title').innerText = layer.name;
+        document.getElementById('layer-desc').innerText = layer.description;
+
+        // Render Components chips
+        const componentsContainer = document.getElementById('layer-components-container');
+        const componentsBox = document.getElementById('layer-components');
+        componentsBox.innerHTML = '';
+        if (layer.components && layer.components.length > 0) {
+            componentsContainer.classList.remove('hidden');
+            componentsContainer.classList.add('flex');
+            layer.components.forEach(comp => {
+                const chip = document.createElement('span');
+                chip.className = "px-2.5 py-0.5 rounded text-xs font-semibold bg-zinc-900 border border-white/5 text-zinc-300";
+                chip.innerText = comp;
+                componentsBox.appendChild(chip);
+            });
+        } else {
+            componentsContainer.classList.remove('flex');
+            componentsContainer.classList.add('hidden');
+        }
+
+        // Update Tab Content
+        document.getElementById('tab-content-anatomy').innerText = layer.description;
+        document.getElementById('tab-content-physiology').innerText = layer.function || "Function not specified.";
+        document.getElementById('tab-content-clinical').innerText = layer.clinical_notes || "Clinical notes not specified.";
+        
+        switchTab(activeTab);
+    }
+
+    function switchTab(tabName) {
+        activeTab = tabName;
+        
+        // Update tab buttons
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.classList.remove('is-active');
+        });
+        document.getElementById(`tab-btn-${tabName}`).classList.add('is-active');
+
+        // Update tab panels
+        document.getElementById('tab-content-anatomy').classList.add('hidden');
+        document.getElementById('tab-content-physiology').classList.add('hidden');
+        document.getElementById('tab-content-clinical').classList.add('hidden');
+        
+        document.getElementById(`tab-content-${tabName}`).classList.remove('hidden');
+    }
+
+    // Initialize
+    detectLayout();
+    renderAnatomy();
+</script>

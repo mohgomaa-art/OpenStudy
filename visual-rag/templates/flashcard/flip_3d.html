@@ -1,0 +1,166 @@
+<!-- HEAD -->
+<style>
+    .card-container {
+        perspective: 1000px;
+        width: 100%;
+        max-width: 550px;
+        min-height: 320px;
+    }
+    .card-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        text-align: center;
+        transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        transform-style: preserve-3d;
+        cursor: pointer;
+    }
+    .card-inner.is-flipped {
+        transform: rotateY(180deg);
+    }
+    .card-face {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        backface-visibility: hidden;
+        -webkit-backface-visibility: hidden;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        padding: 2rem;
+        border-radius: 1.5rem;
+    }
+    .card-front {
+        background: linear-gradient(135deg, rgba(20, 20, 25, 0.8), rgba(35, 30, 45, 0.8));
+        border: 1px solid rgba(139, 92, 246, 0.25);
+    }
+    .card-back {
+        background: linear-gradient(135deg, rgba(30, 25, 40, 0.8), rgba(20, 20, 25, 0.8));
+        border: 1px solid rgba(236, 72, 153, 0.25);
+        transform: rotateY(180deg);
+    }
+</style>
+
+<!-- BODY -->
+<div class="w-full max-w-xl flex flex-col items-center gap-6 animate-fade-in">
+    <!-- Active recall progress indicator -->
+    <div class="w-full flex justify-between items-center text-sm text-zinc-400 px-2">
+        <span id="deck-progress">Card 1 of 5</span>
+        <span id="card-tag" class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-500/10 text-purple-400 border border-purple-500/20">Tag</span>
+    </div>
+
+    <!-- 3D Card -->
+    <div class="card-container" onclick="flipCard()">
+        <div id="flashcard" class="card-inner">
+            <!-- Front -->
+            <div class="card-face card-front shadow-2xl shadow-purple-500/5">
+                <div class="text-xs font-semibold text-purple-400 tracking-widest uppercase">QUESTION / CONCEPT</div>
+                <div id="card-front-text" class="text-xl md:text-2xl font-bold text-white leading-relaxed my-auto flex items-center justify-center">
+                    Front Text
+                </div>
+                <div class="text-xs text-zinc-500 flex items-center justify-center gap-1">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"></path></svg>
+                    Click to flip and reveal answer
+                </div>
+            </div>
+            <!-- Back -->
+            <div class="card-face card-back shadow-2xl shadow-pink-500/5">
+                <div class="text-xs font-semibold text-pink-400 tracking-widest uppercase">EXPLANATION / ANSWER</div>
+                <div id="card-back-text" class="text-base md:text-lg text-zinc-200 leading-relaxed overflow-y-auto my-auto pr-1 flex items-center justify-center text-center">
+                    Back Text
+                </div>
+                <div class="text-xs text-zinc-500 flex items-center justify-center gap-1">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 8H18.2"></path></svg>
+                    Click to flip back
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation controls -->
+    <div class="flex items-center gap-4 mt-2">
+        <button onclick="prevCard()" class="glass-panel px-4 py-2.5 rounded-xl text-zinc-400 hover:text-white hover:border-zinc-700 transition flex items-center gap-1 bg-zinc-950/20">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+            <span>Previous</span>
+        </button>
+        
+        <button onclick="markAsLearnt()" id="learn-btn" class="glass-panel px-5 py-2.5 rounded-xl text-green-400 border-green-500/20 hover:bg-green-500/10 transition flex items-center gap-1.5 bg-zinc-950/20">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <span id="learn-btn-text">Active Recall</span>
+        </button>
+        
+        <button onclick="nextCard()" class="glass-panel px-4 py-2.5 rounded-xl text-zinc-400 hover:text-white hover:border-zinc-700 transition flex items-center gap-1 bg-zinc-950/20">
+            <span>Next</span>
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+        </button>
+    </div>
+</div>
+
+<!-- SCRIPT -->
+<script>
+    document.getElementById('template-name-label').innerText = 'Interactive Flashcards';
+    
+    let currentIndex = 0;
+    const cards = VISUAL_DATA.cards || [];
+    const learntCards = new Set();
+    
+    function updateCard() {
+        if (cards.length === 0) return;
+        
+        const card = cards[currentIndex];
+        const cardElem = document.getElementById('flashcard');
+        
+        // Remove flipped state
+        cardElem.classList.remove('is-flipped');
+        
+        // Update texts after flip transition finishes or immediately
+        setTimeout(() => {
+            document.getElementById('card-front-text').innerText = card.front;
+            document.getElementById('card-back-text').innerText = card.back;
+            document.getElementById('card-tag').innerText = card.tag || 'General';
+            document.getElementById('deck-progress').innerText = `Card ${currentIndex + 1} of ${cards.length}`;
+            if (window.renderMath) window.renderMath();
+            
+            const learnBtn = document.getElementById('learn-btn');
+            const learnText = document.getElementById('learn-btn-text');
+            if (learntCards.has(currentIndex)) {
+                learnBtn.classList.replace('text-green-400', 'text-emerald-500');
+                learnBtn.classList.add('bg-emerald-500/10');
+                learnText.innerText = 'Learnt ✔';
+            } else {
+                learnBtn.classList.replace('text-emerald-500', 'text-green-400');
+                learnBtn.classList.remove('bg-emerald-500/10');
+                learnText.innerText = 'Active Recall';
+            }
+        }, 150);
+    }
+    
+    function flipCard() {
+        document.getElementById('flashcard').classList.toggle('is-flipped');
+        setTimeout(() => window.reportHeight?.(), 650);
+    }
+    
+    function nextCard() {
+        if (cards.length === 0) return;
+        currentIndex = (currentIndex + 1) % cards.length;
+        updateCard();
+    }
+    
+    function prevCard() {
+        if (cards.length === 0) return;
+        currentIndex = (currentIndex - 1 + cards.length) % cards.length;
+        updateCard();
+    }
+    
+    function markAsLearnt() {
+        if (learntCards.has(currentIndex)) {
+            learntCards.delete(currentIndex);
+        } else {
+            learntCards.add(currentIndex);
+        }
+        updateCard();
+    }
+    
+    // Initialize
+    updateCard();
+</script>

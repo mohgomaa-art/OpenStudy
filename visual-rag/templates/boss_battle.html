@@ -1,0 +1,446 @@
+<!-- HEAD -->
+<style>
+    .boss-container {
+        perspective: 1000px;
+    }
+    .boss-card {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        position: relative;
+    }
+    .boss-card.hit {
+        animation: bossShake 0.4s ease-in-out;
+        background: rgba(239, 68, 68, 0.2) !important;
+        border-color: #ef4444 !important;
+    }
+    .boss-card.attack {
+        animation: bossAttack 0.4s ease-in-out;
+    }
+    .boss-card.dead {
+        animation: bossFade 1s forwards;
+    }
+    @keyframes bossShake {
+        0%, 100% { transform: translateX(0); }
+        20%, 60% { transform: translateX(-12px) rotate(-2deg); }
+        40%, 80% { transform: translateX(12px) rotate(2deg); }
+    }
+    @keyframes bossAttack {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(20px) scale(1.05); }
+    }
+    @keyframes bossFade {
+        to { opacity: 0; transform: scale(0.8) rotate(5deg); filter: grayscale(100%); }
+    }
+    
+    /* Damage Floater Animation */
+    .damage-floater {
+        position: absolute;
+        top: -20px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: #ef4444;
+        animation: floatUp 0.8s ease-out forwards;
+        pointer-events: none;
+        text-shadow: 0 0 8px rgba(0, 0, 0, 0.8);
+    }
+    @keyframes floatUp {
+        0% { opacity: 0; transform: translate(-50%, 10px) scale(0.5); }
+        50% { opacity: 1; }
+        100% { opacity: 0; transform: translate(-50%, -40px) scale(1.2); }
+    }
+
+    /* Screen flash on hit */
+    .screen-flash-red {
+        animation: flashRed 0.4s ease-out;
+    }
+    @keyframes flashRed {
+        0% { box-shadow: inset 0 0 100px rgba(239, 68, 68, 0.6); }
+        100% { box-shadow: inset 0 0 0px rgba(239, 68, 68, 0); }
+    }
+    .screen-flash-green {
+        animation: flashGreen 0.4s ease-out;
+    }
+    @keyframes flashGreen {
+        0% { box-shadow: inset 0 0 100px rgba(34, 197, 94, 0.4); }
+        100% { box-shadow: inset 0 0 0px rgba(34, 197, 94, 0); }
+    }
+
+    /* Laser Attack slash effect */
+    .slash-effect {
+        position: absolute;
+        width: 100%;
+        height: 6px;
+        background: linear-gradient(90deg, transparent, #a855f7, #ec4899, transparent);
+        transform: rotate(-30deg);
+        animation: slashAnim 0.3s ease-out forwards;
+        pointer-events: none;
+        z-index: 10;
+    }
+    @keyframes slashAnim {
+        0% { top: -20%; left: -20%; width: 0%; }
+        100% { top: 120%; left: 120%; width: 150%; }
+    }
+</style>
+
+<!-- BODY -->
+<div class="w-full max-w-2xl flex flex-col gap-6 animate-fade-in items-center">
+    <!-- Battle Arena Panel -->
+    <div class="w-full flex flex-col md:flex-row gap-4 items-center justify-between glass-panel p-6 rounded-3xl relative overflow-hidden bg-zinc-950/20" id="battle-arena">
+        <!-- Slash effect injector -->
+        <div id="slash-container" class="absolute inset-0 pointer-events-none"></div>
+
+        <!-- Player Stats (Left) -->
+        <div class="flex flex-col items-center md:items-start gap-2.5 flex-1">
+            <span class="text-[10px] font-extrabold uppercase tracking-widest text-purple-400">Challenger</span>
+            <h4 class="text-base font-bold text-white">Student Hero</h4>
+            <!-- Hearts -->
+            <div id="player-hearts" class="flex gap-1.5 text-lg">
+                ❤️ ❤️ ❤️
+            </div>
+            <!-- Streak badge -->
+            <span id="streak-badge" class="px-2.5 py-0.5 rounded-full text-[9px] font-bold border border-zinc-800 bg-zinc-900 text-zinc-400">
+                STREAK: 0
+            </span>
+        </div>
+
+        <!-- Boss Avatar + Health (Center/Right) -->
+        <div class="boss-container flex flex-col items-center gap-3 flex-1 relative py-4">
+            <!-- Damage floating text parent -->
+            <div id="damage-text-container" class="absolute inset-0 pointer-events-none"></div>
+
+            <div id="boss-card" class="boss-card glass-panel w-36 h-36 rounded-2xl flex flex-col items-center justify-center border-zinc-800 bg-gradient-to-br from-red-950/25 to-zinc-950/40 relative shadow-xl shadow-red-950/10">
+                <!-- Boss avatar glyph -->
+                <div class="text-4xl text-red-500 font-extrabold select-none mb-1">😈</div>
+                <div class="text-[9px] font-bold text-red-400 tracking-wider uppercase bg-red-900/10 border border-red-900/30 px-2 py-0.5 rounded-full" id="boss-name-label">
+                    BOSS NAME
+                </div>
+            </div>
+
+            <!-- Boss Health Bar -->
+            <div class="w-full max-w-xs flex flex-col gap-1 items-center">
+                <div class="w-full bg-zinc-900 h-3 rounded-full border border-white/5 overflow-hidden">
+                    <div id="boss-hp-bar" class="h-full bg-gradient-to-r from-red-600 to-rose-500 rounded-full transition-all duration-300" style="width: 100%;"></div>
+                </div>
+                <div class="flex justify-between w-full text-[9px] text-zinc-500 font-bold uppercase tracking-wider px-1">
+                    <span>HP STATUS</span>
+                    <span id="boss-hp-label">100 / 100</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Active Question Board -->
+    <div id="question-board" class="w-full flex flex-col gap-4">
+        <!-- Question Panel -->
+        <div class="glass-panel p-5 rounded-2xl border-l-4 border-purple-500 bg-zinc-950/10 flex flex-col gap-2">
+            <div class="flex justify-between items-center text-[10px] text-zinc-500 uppercase tracking-widest font-bold">
+                <span id="question-index-label">Question 1 of 1</span>
+                <span>Active Encounter</span>
+            </div>
+            <h3 id="question-text" class="text-sm font-bold text-white mt-1 leading-relaxed">
+                QUESTION CONTENT
+            </h3>
+        </div>
+
+        <!-- Options grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="options-container">
+            <!-- Dynamically populated MCQ buttons -->
+        </div>
+    </div>
+
+    <!-- Dynamic Action/Explanation Overlay -->
+    <div id="action-panel" class="hidden w-full glass-panel p-5 rounded-2xl flex flex-col items-center gap-3 animate-fade-in border-zinc-800 bg-zinc-950/10">
+        <h4 id="action-status-label" class="text-sm font-bold">Encounter Action</h4>
+        <p id="explanation-text" class="text-xs text-zinc-400 leading-relaxed text-center font-medium max-w-lg">
+            EXPLANATION DETAILS
+        </p>
+        <button 
+            id="next-turn-btn"
+            onclick="nextTurn()"
+            class="px-6 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-xs font-bold text-white shadow-lg shadow-purple-500/20 transition-all cursor-pointer flex items-center gap-2"
+        >
+            Next Question
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </button>
+    </div>
+
+    <!-- End Game Displays -->
+    <div id="end-display" class="hidden w-full glass-panel p-8 rounded-3xl flex flex-col items-center gap-4 text-center animate-fade-in border-zinc-800 bg-zinc-950/15">
+        <div id="end-avatar" class="text-6xl">🏆</div>
+        <h2 id="end-title" class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-400">Encounter Finished</h2>
+        <p id="end-detail" class="text-xs text-zinc-400 leading-relaxed max-w-sm">Detailed final stats.</p>
+        <button 
+            onclick="restartGame()"
+            class="px-6 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-800 text-xs font-bold text-white transition-all cursor-pointer"
+        >
+            Replay Encounter
+        </button>
+    </div>
+</div>
+
+<!-- SCRIPT -->
+<script>
+    document.getElementById('template-name-label').innerText = 'Boss Battle MCQ';
+
+    const questionsList = VISUAL_DATA.questions || [];
+    const bossMaxHP = 100;
+    const damagePerCorrect = Math.max(15, Math.ceil(bossMaxHP / (questionsList.length || 1)));
+
+    let currentQuestIdx = 0;
+    let bossCurrentHP = bossMaxHP;
+    let playerHearts = 3;
+    let winStreak = 0;
+    let isOptionDisabled = false;
+
+    function initBattle() {
+        if (questionsList.length === 0) {
+            document.getElementById('question-text').innerText = "No battle questions found in dataset.";
+            return;
+        }
+
+        bossCurrentHP = bossMaxHP;
+        playerHearts = 3;
+        currentQuestIdx = 0;
+        isOptionDisabled = false;
+
+        document.getElementById('boss-name-label').innerText = VISUAL_DATA.boss_name || 'Encounter Boss';
+        document.getElementById('end-display').classList.add('hidden');
+        document.getElementById('question-board').classList.remove('hidden');
+        document.getElementById('battle-arena').classList.remove('hidden');
+
+        updateHeartsUI();
+        updateBossHPUI();
+        loadQuestion();
+    }
+
+    function updateHeartsUI() {
+        const heartsDiv = document.getElementById('player-hearts');
+        heartsDiv.innerHTML = '';
+        
+        for (let i = 0; i < 3; i++) {
+            if (i < playerHearts) {
+                heartsDiv.innerHTML += '❤️ ';
+            } else {
+                heartsDiv.innerHTML += '🖤 ';
+            }
+        }
+
+        document.getElementById('streak-badge').innerText = `STREAK: ${winStreak}`;
+    }
+
+    function updateBossHPUI() {
+        const hpBar = document.getElementById('boss-hp-bar');
+        const hpLabel = document.getElementById('boss-hp-label');
+        
+        const percentage = Math.max(0, (bossCurrentHP / bossMaxHP) * 100);
+        hpBar.style.width = `${percentage}%`;
+        hpLabel.innerText = `${bossCurrentHP} / ${bossMaxHP}`;
+
+        // Change health bar colors based on HP health status
+        if (percentage > 50) {
+            hpBar.className = "h-full bg-gradient-to-r from-red-600 to-rose-500 rounded-full transition-all duration-300";
+        } else if (percentage > 20) {
+            hpBar.className = "h-full bg-gradient-to-r from-amber-600 to-orange-500 rounded-full transition-all duration-300";
+        } else {
+            hpBar.className = "h-full bg-gradient-to-r from-red-700 to-red-600 rounded-full transition-all duration-300 animate-pulse";
+        }
+    }
+
+    function loadQuestion() {
+        isOptionDisabled = false;
+        document.getElementById('action-panel').classList.add('hidden');
+
+        const currentQ = questionsList[currentQuestIdx];
+        
+        document.getElementById('question-index-label').innerText = `Question ${currentQuestIdx + 1} of ${questionsList.length}`;
+        document.getElementById('question-text').innerText = currentQ.question;
+
+        const container = document.getElementById('options-container');
+        container.innerHTML = '';
+
+        currentQ.options.forEach((opt, idx) => {
+            const btn = document.createElement('button');
+            btn.setAttribute('class', 'glass-panel p-4 rounded-2xl text-left text-xs font-semibold hover:border-purple-500/50 hover:bg-purple-500/5 transition-all text-zinc-300 hover:text-white cursor-pointer select-none leading-relaxed flex items-center gap-3 bg-zinc-950/20');
+            btn.setAttribute('onclick', `selectOption(this, '${opt.replace(/'/g, "\\'")}')`);
+            
+            // Alphabetic bullet indicator
+            const letter = String.fromCharCode(65 + idx); // A, B, C, D
+            btn.innerHTML = `
+                <span class="flex-shrink-0 w-6 h-6 rounded-lg bg-zinc-900 border border-white/5 flex items-center justify-center font-bold text-[10px] text-zinc-400">
+                    ${letter}
+                </span>
+                <span class="flex-grow">${opt}</span>
+            `;
+            
+            container.appendChild(btn);
+        });
+    }
+
+    function selectOption(btnElement, selectedOpt) {
+        if (isOptionDisabled) return;
+        isOptionDisabled = true;
+
+        const currentQ = questionsList[currentQuestIdx];
+        const actionPanel = document.getElementById('action-panel');
+        const statusLabel = document.getElementById('action-status-label');
+        const explanationText = document.getElementById('explanation-text');
+        const arena = document.getElementById('battle-arena');
+
+        // Disable hover styles on other buttons
+        const optionButtons = document.querySelectorAll('#options-container button');
+        optionButtons.forEach(btn => {
+            btn.classList.add('pointer-events-none');
+        });
+
+        const numBadge = btnElement.querySelector('span:first-child');
+
+        if (selectedOpt === currentQ.answer) {
+            // Correct answer
+            winStreak++;
+            bossCurrentHP = Math.max(0, bossCurrentHP - damagePerCorrect);
+            
+            // Correct visual cues
+            btnElement.style.borderColor = 'rgba(34, 197, 94, 0.4)';
+            btnElement.style.background = 'rgba(34, 197, 94, 0.04)';
+            btnElement.classList.add('text-green-400');
+            numBadge.style.borderColor = 'rgba(34, 197, 94, 0.4)';
+            numBadge.style.color = '#4ade80';
+            numBadge.style.background = 'rgba(34, 197, 94, 0.1)';
+
+            // Trigger screen flash green
+            arena.classList.add('screen-flash-green');
+            setTimeout(() => arena.classList.remove('screen-flash-green'), 400);
+
+            // Trigger Attack Slash animation
+            triggerSlash();
+            
+            // Damage boss
+            setTimeout(() => {
+                const bossCard = document.getElementById('boss-boss-card') || document.getElementById('boss-card');
+                bossCard.classList.add('hit');
+                triggerDamageText(`-${damagePerCorrect} HP`);
+                updateBossHPUI();
+                
+                setTimeout(() => bossCard.classList.remove('hit'), 400);
+            }, 200);
+
+            // Action panel status
+            actionPanel.classList.remove('hidden');
+            actionPanel.style.borderColor = 'rgba(34, 197, 94, 0.3)';
+            statusLabel.innerHTML = `<span class="text-green-400 font-bold uppercase tracking-wider">💥 Direct Hit! Boss takes -${damagePerCorrect} HP damage</span>`;
+            explanationText.innerText = currentQ.explanation;
+            
+        } else {
+            // Incorrect answer
+            winStreak = 0;
+            playerHearts = Math.max(0, playerHearts - 1);
+            
+            // Incorrect visual cues
+            btnElement.style.borderColor = 'rgba(239, 68, 68, 0.4)';
+            btnElement.style.background = 'rgba(239, 68, 68, 0.04)';
+            btnElement.classList.add('text-red-400');
+            numBadge.style.borderColor = 'rgba(239, 68, 68, 0.4)';
+            numBadge.style.color = '#f87171';
+            numBadge.style.background = 'rgba(239, 68, 68, 0.1)';
+
+            // Find and highlight correct answer in green
+            optionButtons.forEach(btn => {
+                const optText = btn.querySelector('span:last-child').innerText;
+                if (optText === currentQ.answer) {
+                    btn.style.borderColor = 'rgba(34, 197, 94, 0.3)';
+                    btn.querySelector('span:first-child').style.borderColor = 'rgba(34, 197, 94, 0.3)';
+                    btn.querySelector('span:first-child').style.color = '#4ade80';
+                }
+            });
+
+            // Trigger screen flash red
+            arena.classList.add('screen-flash-red');
+            setTimeout(() => arena.classList.remove('screen-flash-red'), 400);
+
+            // Trigger Boss attack animation
+            const bossCard = document.getElementById('boss-card');
+            bossCard.classList.add('attack');
+            setTimeout(() => {
+                bossCard.classList.remove('attack');
+                updateHeartsUI();
+            }, 400);
+
+            // Action panel status
+            actionPanel.classList.remove('hidden');
+            actionPanel.style.borderColor = 'rgba(239, 68, 68, 0.3)';
+            statusLabel.innerHTML = `<span class="text-red-400 font-bold uppercase tracking-wider">⚠️ Counter-Attack! You lost a Heart!</span>`;
+            explanationText.innerText = `Correct Answer: "${currentQ.answer}".\n\n${currentQ.explanation}`;
+        }
+    }
+
+    function triggerSlash() {
+        const container = document.getElementById('slash-container');
+        const slash = document.createElement('div');
+        slash.className = 'slash-effect';
+        container.appendChild(slash);
+        setTimeout(() => slash.remove(), 400);
+    }
+
+    function triggerDamageText(text) {
+        const container = document.getElementById('damage-text-container');
+        const floater = document.createElement('div');
+        floater.className = 'damage-floater';
+        floater.innerText = text;
+        container.appendChild(floater);
+        setTimeout(() => floater.remove(), 800);
+    }
+
+    function nextTurn() {
+        if (bossCurrentHP <= 0) {
+            endBattle(true);
+        } else if (playerHearts <= 0) {
+            endBattle(false);
+        } else {
+            currentQuestIdx++;
+            if (currentQuestIdx < questionsList.length) {
+                loadQuestion();
+            } else {
+                // Out of questions but both survived - check who had less HP
+                if (bossCurrentHP <= bossMaxHP / 2) {
+                    endBattle(true);
+                } else {
+                    endBattle(false);
+                }
+            }
+        }
+    }
+
+    function endBattle(isWin) {
+        document.getElementById('question-board').classList.add('hidden');
+        document.getElementById('action-panel').classList.add('hidden');
+        document.getElementById('battle-arena').classList.add('hidden');
+
+        const display = document.getElementById('end-display');
+        const avatar = document.getElementById('end-avatar');
+        const title = document.getElementById('end-title');
+        const detail = document.getElementById('end-detail');
+
+        display.classList.remove('hidden');
+
+        if (isWin) {
+            avatar.innerText = '🏆';
+            title.innerText = 'VICTORY!';
+            title.className = 'text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-green-400 to-teal-400';
+            detail.innerHTML = `You successfully defeated <strong>${VISUAL_DATA.boss_name}</strong>! <br>Remaining HP: 0/${bossMaxHP}.<br>Final Streak: ${winStreak} correct answers!`;
+        } else {
+            avatar.innerText = '💀';
+            title.innerText = 'DEFEAT!';
+            title.className = 'text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-red-500 to-orange-500';
+            detail.innerHTML = `You were defeated by <strong>${VISUAL_DATA.boss_name}</strong>!<br>Boss remaining HP: ${bossCurrentHP}/${bossMaxHP}.<br>Better luck next time!`;
+            winStreak = 0; // reset streak
+        }
+    }
+
+    function restartGame() {
+        initBattle();
+    }
+
+    // Initialize Game
+    initBattle();
+</script>

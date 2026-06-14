@@ -1,0 +1,208 @@
+<!-- HEAD -->
+<style>
+    .swimlane-container {
+        display: flex;
+        width: 100%;
+        gap: 1.5rem;
+    }
+    .swimlane-col {
+        flex: 1;
+        min-width: 250px;
+        background-color: rgba(255, 255, 255, 0.015);
+        border: 1px dashed rgba(255, 255, 255, 0.05);
+        border-radius: 1.5rem;
+        padding: 1rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+    .flow-node {
+        border-left: 4px solid var(--accent, #3b82f6);
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .flow-node.is-active {
+        transform: scale(1.03);
+        box-shadow: 0 0 16px -2px var(--accent-glow, rgba(124, 58, 237, 0.4));
+    }
+    .flow-step {
+        border-left-color: var(--accent, #3b82f6);
+    }
+    .flow-decision {
+        border-left-color: #f59e0b;
+    }
+    .flow-outcome {
+        border-left-color: #10b981;
+    }
+</style>
+
+<!-- BODY -->
+<div class="w-full max-w-4xl flex flex-col items-center gap-4 animate-fade-in py-2">
+    <!-- Header status -->
+    <div class="w-full flex justify-between items-center glass-panel px-6 py-4 rounded-2xl bg-zinc-950/20 mb-2">
+        <div class="flex flex-col">
+            <span class="text-xs text-zinc-400 font-semibold tracking-wider uppercase">Swimlane Pathway</span>
+            <span id="nav-status-text" class="text-sm font-bold text-white">Select a step to begin tracking</span>
+        </div>
+        <div class="flex gap-2">
+            <button onclick="prevStep()" class="glass-panel px-3 py-1.5 rounded-lg text-zinc-400 hover:text-white text-xs bg-zinc-900/30">
+                Back
+            </button>
+            <button onclick="nextStep()" class="glass-panel px-3 py-1.5 rounded-lg text-purple-400 hover:text-purple-300 text-xs font-semibold bg-zinc-900/30">
+                Continue
+            </button>
+        </div>
+    </div>
+
+    <!-- Swimlanes side by side -->
+    <div class="swimlane-container flex-col md:flex-row w-full items-stretch justify-center">
+        <!-- Lane A -->
+        <div class="swimlane-col">
+            <div class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest text-center border-b border-zinc-800/40 pb-2">
+                📂 Primary Track / Inflow
+            </div>
+            <div id="lane-a-list" class="flex flex-col gap-4">
+                <!-- Lane A nodes -->
+            </div>
+        </div>
+
+        <!-- Lane B -->
+        <div class="swimlane-col">
+            <div class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest text-center border-b border-zinc-800/40 pb-2">
+                ⚙️ Response / Reaction
+            </div>
+            <div id="lane-b-list" class="flex flex-col gap-4">
+                <!-- Lane B nodes -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- SCRIPT -->
+<script>
+    document.getElementById('template-name-label').innerText = 'Swimlane Pathway Flowchart';
+
+    let activeStepId = null;
+    let stepMap = new Map();
+    let renderChain = [];
+
+    function renderFlow() {
+        const laneA = document.getElementById('lane-a-list');
+        const laneB = document.getElementById('lane-b-list');
+        
+        laneA.innerHTML = '';
+        laneB.innerHTML = '';
+        
+        const steps = VISUAL_DATA.steps || [];
+        steps.sort((a, b) => a.id - b.id);
+        
+        stepMap.clear();
+        steps.forEach(s => stepMap.set(s.id, s));
+
+        const pointedTo = new Set(steps.map(s => s.next).filter(n => n !== null));
+        const startStep = steps.find(s => !pointedTo.has(s.id)) || steps[0];
+        
+        if (startStep) {
+            activeStepId = startStep.id;
+        }
+
+        let currentStep = startStep;
+        let renderedIds = new Set();
+        renderChain = [];
+
+        while (currentStep && !renderedIds.has(currentStep.id)) {
+            renderChain.push(currentStep);
+            renderedIds.add(currentStep.id);
+            currentStep = stepMap.get(currentStep.next);
+        }
+
+        steps.forEach(s => {
+            if (!renderedIds.has(s.id)) {
+                renderChain.push(s);
+                renderedIds.add(s.id);
+            }
+        });
+
+        renderChain.forEach((step, idx) => {
+            let typeClass = "flow-step";
+            if (step.type === "decision") typeClass = "flow-decision";
+            else if (step.type === "outcome") typeClass = "flow-outcome";
+
+            const card = document.createElement('div');
+            card.id = `node-${step.id}`;
+            card.setAttribute('class', `flow-node ${typeClass} glass-panel p-4 rounded-xl bg-zinc-950/20 flex flex-col justify-between cursor-pointer`);
+            card.addEventListener('click', () => selectStep(step.id));
+
+            card.innerHTML = `
+                <div>
+                    <div class="flex justify-between items-center text-[9px] font-bold text-zinc-500 uppercase tracking-widest">
+                        <span>Node ${step.id}</span>
+                        <span class="text-zinc-400">${step.type}</span>
+                    </div>
+                    <h4 class="text-xs font-bold text-white mt-1.5 leading-snug">${step.label}</h4>
+                    <p class="text-[10px] text-zinc-400 mt-1 leading-relaxed">${step.sublabel}</p>
+                </div>
+            `;
+
+            // Swimlane classification: alternate or check keyword
+            const lowerLabel = (step.label + " " + step.sublabel).toLowerCase();
+            let isLaneA = idx % 2 === 0;
+
+            if (lowerLabel.includes("response") || lowerLabel.includes("outcome") || lowerLabel.includes("result") || lowerLabel.includes("reaction")) {
+                isLaneA = false;
+            }
+
+            if (isLaneA) {
+                laneA.appendChild(card);
+            } else {
+                laneB.appendChild(card);
+            }
+        });
+
+        updateUI();
+    }
+
+    function selectStep(id) {
+        activeStepId = id;
+        updateUI();
+    }
+
+    function updateUI() {
+        const steps = document.getElementsByClassName('flow-node');
+        for (let i = 0; i < steps.length; i++) {
+            steps[i].classList.remove('is-active');
+        }
+
+        const activeNode = document.getElementById(`node-${activeStepId}`);
+        if (activeNode) {
+            activeNode.classList.add('is-active');
+        }
+
+        const activeStep = stepMap.get(activeStepId);
+        const statusText = document.getElementById('nav-status-text');
+        if (activeStep) {
+            statusText.innerText = `${activeStep.label} ${activeStep.sublabel ? ' — ' + activeStep.sublabel : ''}`;
+            if (window.renderMath) window.renderMath();
+        }
+    }
+
+    function nextStep() {
+        const current = stepMap.get(activeStepId);
+        if (current && current.next !== null && stepMap.has(current.next)) {
+            selectStep(current.next);
+        } else {
+            const idx = renderChain.findIndex(s => s.id === activeStepId);
+            if (idx !== -1 && idx < renderChain.length - 1) {
+                selectStep(renderChain[idx + 1].id);
+            }
+        }
+    }
+
+    function prevStep() {
+        const idx = renderChain.findIndex(s => s.id === activeStepId);
+        if (idx > 0) {
+            selectStep(renderChain[idx - 1].id);
+        }
+    }
+
+    renderFlow();
+</script>

@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html data-theme="clinical" lang="en" data-theme="clinical">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bleeding Disorders in Children - Clinical Vignette</title>
+    <style>
+        /* Theme Variables */
+        :root { /* clinical */
+            --bg: #f8fafc; --surface: #ffffff; --border: #e2e8f0; --text: #0f172a; --text-secondary: #64748b; --accent: #2563eb; --accent-soft: #dbeafe; --accent-2: #0d9488; --accent-2-soft: #ccfbf1; --success: #16a34a; --warning: #d97706; --danger: #dc2626;
+        }
+        [data-theme="nightshift"] {
+            --bg: #0a0e17; --surface: #131a26; --border: rgba(255,255,255,0.08); --text: #e2e8f0; --text-secondary: #94a3b8; --accent: #38bdf8; --accent-soft: rgba(56,189,248,0.15); --accent-2: #a78bfa; --accent-2-soft: rgba(167,139,250,0.15); --success: #4ade80; --warning: #fbbf24; --danger: #f87171;
+        }
+        [data-theme="botanica"] {
+            --bg: #f6f8f1; --surface: #ffffff; --border: #dde6d5; --text: #2b3a26; --text-secondary: #6b7d63; --accent: #4d7c4a; --accent-soft: #e3ecdf; --accent-2: #c9852f; --accent-2-soft: #f6e6cf; --success: #4d7c4a; --warning: #c9852f; --danger: #b3473a;
+        }
+        [data-theme="bloom"] {
+            --bg: #fff5f7; --surface: #ffffff; --border: #fbd5e0; --text: #4a2540; --text-secondary: #9c7a8f; --accent: #ec4899; --accent-soft: #fce7f3; --accent-2: #14b8a6; --accent-2-soft: #ccfbf1; --success: #22c55e; --warning: #f59e0b; --danger: #e11d48;
+        }
+        [data-theme="solstice"] {
+            --bg: #fff8f0; --surface: #ffffff; --border: #fde4cf; --text: #3a2418; --text-secondary: #8a6a55; --accent: #f97316; --accent-soft: #ffedd5; --accent-2: #0ea5e9; --accent-2-soft: #e0f2fe; --success: #65a30d; --warning: #eab308; --danger: #dc2626;
+        }
+        [data-theme="arcane"] {
+            --bg: #0d0a1a; --surface: #1a1430; --border: rgba(167, 139, 250, 0.15); --text: #f1eaff; --text-secondary: #a89bc4; --accent: #c084fc; --accent-soft: rgba(192, 132, 252, 0.15); --accent-2: #2dd4bf; --accent-2-soft: rgba(45, 212, 191, 0.15); --success: #34d399; --warning: #fbbf24; --danger: #fb7185;
+        }
+
+        /* Base Styles */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 1.5rem;
+            background-color: var(--surface);
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            border: 1px solid var(--border);
+            flex-grow: 1;
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            color: var(--text);
+            margin-top: 1.5rem;
+            margin-bottom: 0.8rem;
+            line-height: 1.2;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            color: var(--accent); /* Mapped from #8A2BE2 */
+            border-bottom: 2px solid var(--accent-soft);
+            padding-bottom: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        h2 {
+            font-size: 1.8rem;
+            color: var(--accent); /* Mapped from #4682B4 */
+            margin-bottom: 1rem;
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            color: var(--accent-2); /* Mapped from #5F9EA0 */
+            margin-bottom: 0.8rem;
+        }
+
+        p {
+            margin-bottom: 1rem;
+            color: var(--text);
+        }
+
+        ul {
+            list-style-type: none;
+            padding-left: 1.2rem;
+        }
+
+        ul li {
+            margin-bottom: 0.5rem;
+            position: relative;
+            color: var(--text);
+        }
+
+        ul li::before {
+            content: "•";
+            color: var(--accent);
+            position: absolute;
+            left: -1.2rem;
+        }
+
+        strong {
+            color: var(--text);
+        }
+
+        /* Specific Component Styles */
+        .callout {
+            background-color: var(--accent-soft);
+            border-left: 5px solid var(--accent);
+            padding: 1rem 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 4px;
+            color: var(--text);
+        }
+        .callout strong {
+            color: var(--accent);
+        }
+
+        .theme-switcher {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 1000;
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            padding: 0.5rem 1rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .theme-switcher label {
+            color: var(--text-secondary);
+            margin-right: 0.5rem;
+            font-size: 0.9rem;
+        }
+        .theme-switcher select {
+            background-color: var(--surface);
+            color: var(--text);
+            border: 1px solid var(--border);
+            padding: 0.3rem 0.6rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%230f172a%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-6.5%200-12.3%203.2-16.1%208.1-3.8%204.9-4.7%2011.6-2.9%2017.7l139.3%20139.3c3.5%203.5%208.1%205.4%2013%205.4s9.5-1.9%2013-5.4l139.3-139.3c3.7-3.7%204.6-9.1%202.9-14z%22%2F%3E%3C%2Fsvg%3E'); /* Default arrow color for light themes */
+            background-repeat: no-repeat;
+            background-position: right 0.7em top 50%, 0 0;
+            background-size: 0.65em auto, 100%;
+        }
+        /* Dynamic SVG arrow color based on text color for dark themes */
+        [data-theme="nightshift"] .theme-switcher select,
+        [data-theme="arcane"] .theme-switcher select {
+             background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23e2e8f0%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-6.5%200-12.3%203.2-16.1%208.1-3.8%204.9-4.7%2011.6-2.9%2017.7l139.3%20139.3c3.5%203.5%208.1%205.4%2013%205.4s9.5-1.9%2013-5.4l139.3-139.3c3.7-3.7%204.6-9.1%202.9-14z%22%2F%3E%3C%2Fsvg%3E'); /* Light arrow for dark themes */
+        }
+
+        .theme-switcher select:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px var(--accent-soft);
+        }
+
+        /* Collapsible Sections (Differential, Disease Details) */
+        details {
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            margin-bottom: 1rem;
+            overflow: hidden;
+        }
+
+        summary {
+            display: block; /* Ensures the whole summary area is clickable */
+            padding: 1rem 1.2rem;
+            cursor: pointer;
+            background-color: var(--accent-soft);
+            color: var(--accent);
+            font-weight: bold;
+            font-size: 1.1rem;
+            list-style: none; /* Removes default marker */
+            position: relative;
+            user-select: none;
+            border-bottom: 1px solid var(--border);
+        }
+        summary:hover {
+            background-color: var(--accent-soft);
+            filter: brightness(0.95);
+        }
+
+        summary::-webkit-details-marker {
+            display: none; /* Removes default marker for Webkit browsers */
+        }
+
+        summary::after {
+            content: "+";
+            position: absolute;
+            right: 1.2rem;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 1.5rem;
+            line-height: 1;
+            color: var(--accent);
+            transition: transform 0.2s ease-in-out;
+        }
+
+        details[open] summary::after {
+            content: "−";
+            transform: translateY(-50%) rotate(0deg); /* No rotation needed for minus */
+        }
+
+        .details-content {
+            padding: 1rem 1.2rem;
+            color: var(--text);
+        }
+        .details-content p {
+            margin-top: 0;
+            margin-bottom: 0.5rem;
+        }
+        .details-content ul {
+            padding-left: 1.5rem;
+            margin-top: 0.5rem;
+        }
+        .details-content ul li {
+            margin-bottom: 0.3rem;
+            color: var(--text-secondary);
+        }
+        .details-content ul li::before {
+            color: var(--accent-2);
+        }
+
+        .differential-list li strong {
+            color: var(--warning); /* Mapped from #FFD700 */
+        }
+        .investigation-list li span {
+            color: var(--warning); /* Mapped from #DAA520 */
+        }
+        .management-list li span {
+            color: var(--accent-2); /* Mapped from #9370DB */
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .container {
+                margin: 1rem auto;
+                padding: 1rem;
+            }
+            h1 {
+                font-size: 2rem;
+            }
+            h2 {
+                font-size: 1.5rem;
+            }
+            h3 {
+                font-size: 1.2rem;
+            }
+            .theme-switcher {
+                top: 0.5rem;
+                right: 0.5rem;
+                padding: 0.3rem 0.6rem;
+            }
+            .theme-switcher label, .theme-switcher select {
+                font-size: 0.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="theme-switcher">
+        <label for="theme-select">Theme:</label>
+        <select id="theme-select">
+            <option value="clinical">Clinical</option>
+            <option value="nightshift">Nightshift</option>
+            <option value="botanica">Botanica</option>
+            <option value="bloom">Bloom</option>
+            <option value="solstice">Solstice</option>
+            <option value="arcane">Arcane</option>
+        </select>
+    </div>
+
+    <div class="container">
+        <h1>Bleeding Disorders in Children</h1>
+
+        <div class="callout">
+            <strong>IMPORTANT:</strong> Bleeding disorders are a common reason for referral in pediatrics. While often benign, they can be indicative of serious underlying conditions, necessitating a thorough and careful evaluation.
+        </div>
+
+        <h2>Initial Assessment</h2>
+
+        <div class="card-section">
+            <h3>History</h3>
+            <ul>
+                <li><strong>Onset, Frequency, Severity, and Site of Bleeding:</strong> Characterize the bleeding pattern.</li>
+                <li><strong>Precipitating Factors:</strong> Identify any events leading to bleeding.</li>
+                <li><strong>Family History:</strong> Inquire about bleeding disorders in relatives.</li>
+                <li><strong>Drug History:</strong> Specifically ask about NSAIDs, antibiotics, and anticoagulants.</li>
+                <li><strong>Other Medical Conditions:</strong> Assess for comorbidities.</li>
+                <li><strong>Previous Procedures:</strong> Document bleeding complications from surgeries or dental work.</li>
+            </ul>
+        </div>
+
+        <div class="card-section">
+            <h3>Examination</h3>
+            <ul>
+                <li><strong>General Observations:</strong> Look for pallor, jaundice.</li>
+                <li><strong>Skin:</strong> Inspect for petechiae, purpura, ecchymoses, telangiectasias.</li>
+                <li><strong>Joints:</strong> Assess for signs of hemarthrosis.</li>
+                <li><strong>Fundoscopy:1</strong> Check for retinal hemorrhages.</li>
+                <li><strong>Abdominal Examination:</strong> Palpate for splenomegaly or hepatomegaly.</li>
+            </ul>
+        </div>
+
+        <h2>Differential Diagnosis</h2>
+        <details>
+            <summary>Bleeding Disorders in Children</summary>
+            <div class="details-content">
+                <ul class="differential-list">
+                    <li><strong style="color:var(--warning);">Common Causes:</strong>
+                        <ul>
+                            <li>Idiopathic Thrombocytopenic Purpura (ITP)</li>
+                            <li>Von Willebrand Disease (VWD)</li>
+                            <li>Hemophilia A and B (rare but important)</li>
+                            <li>Vitamin K deficiency</li>
+                        </ul>
+                    </li>
+                    <li><strong style="color:var(--warning);">Less Common Causes:</strong>
+                        <ul>
+                            <li>Disseminated Intravascular Coagulation (DIC)</li>
+                            <li>Liver disease</li>
+                            <li>Renal failure</li>
+                            <li>Leukemia</li>
+                            <li>Other specific factor deficiencies</li>
+                            <li>Platelet function disorders</li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </details>
+
+        <h2>Key Bleeding Disorders in Pediatrics</h2>
+
+        <details>
+            <summary>Idiopathic Thrombocytopenic Purpura (ITP)</summary>
+            <div class="details-content">
+                <p><strong>Presentation:</strong> Acute onset of petechiae, purpura, and bruising in an otherwise healthy child, often following a viral infection. Rarely, mucosal bleeding or intracranial hemorrhage.</p>
+                <p><strong>Diagnosis:</strong> Diagnosis of exclusion. Platelet count &lt; 100 x 10^9/L (often &lt; 20 x 10^9/L) with normal peripheral blood smear. Bone marrow aspirate usually not needed unless atypical features.</p>
+                <p><strong>Treatment:</strong> Most cases resolve spontaneously. Steroids (prednisolone) or IVIG for severe bleeding or very low platelet counts. Splenectomy is rarely needed in children.</p>
+            </div>
+        </details>
+
+        <details>
+            <summary>Von Willebrand Disease (VWD)</summary>
+            <div class="details-content">
+                <p><strong>Presentation:</strong> Mucocutaneous bleeding (epistaxis, menorrhagia, easy bruising, prolonged bleeding after trauma/surgery). Severity varies by type.</p>
+                <p><strong>Diagnosis:</strong> Prolonged PTT (in some types), decreased Von Willebrand Factor (VWF) antigen, decreased VWF activity (ristocetin cofactor activity), decreased Factor VIII activity.</p>
+                <p><strong>Treatment:</strong> Desmopressin (DDAVP) for mild types (Type 1). VWF-containing factor concentrates for severe types or unresponsive to DDAVP. Antifibrinolytics (tranexamic acid) for mucosal bleeding.</p>
+            </div>
+        </details>
+
+        <details>
+            <summary>Hemophilia A (Factor VIII Deficiency)</summary>
+            <div class="details-content">
+                <p><strong>Presentation:</strong> Spontaneous bleeding into joints (hemarthrosis), muscles, and soft tissues. Prolonged bleeding after trauma/surgery. Severity correlates with factor levels.</p>
+                <p><strong>Diagnosis:</strong> Prolonged PTT, normal PT, normal bleeding time, decreased Factor VIII activity.</p>
+                <p><strong>Treatment:</strong> Recombinant Factor VIII replacement. Prophylaxis for severe cases. Desmopressin (DDAVP) for mild hemophilia A.</p>
+            </div>
+        </details>
+
+        <details>
+            <summary>Hemophilia B (Factor IX Deficiency)</summary>
+            <div class="details-content">
+                <p><strong>Presentation:</strong> Clinically indistinguishable from Hemophilia A (spontaneous bleeding into joints, muscles, soft tissues).</p>
+                <p><strong>Diagnosis:</strong> Prolonged PTT, normal PT, normal bleeding time, decreased Factor IX activity.</p>
+                <p><strong>Treatment:</strong> Recombinant Factor IX replacement. Prophylaxis for severe cases.</p>
+            </div>
+        </details>
+
+        <details>
+            <summary>Vitamin K Deficiency</summary>
+            <div class="details-content">
+                <p><strong>Presentation:</strong> Neonatal bleeding (e.g., intracranial hemorrhage, gastrointestinal bleeding) due to inadequate vitamin K stores and immature liver function. Later in infancy, can be due to malabsorption or certain medications.</p>
+                <p><strong>Diagnosis:</strong> Prolonged PT and PTT, normal bleeding time and platelet count, responds to vitamin K administration.</p>
+                <p><strong>Treatment:</strong> Vitamin K administration (IM or IV). Prevention with prophylactic vitamin K at birth.</p>
+            </div>
+        </details>
+
+        <h2>Investigations</h2>
+        <ul class="investigation-list">
+            <li><span style="color:var(--warning);"><strong>Full Blood Count (FBC) with Peripheral Blood Film:</strong></span> To assess platelet count and morphology.</li>
+            <li><span style="color:var(--warning);"><strong>Prothrombin Time (PT):</strong></span> Evaluates the extrinsic and common coagulation pathways.</li>
+            <li><span style="color:var(--warning);"><strong>Activated Partial Thromboplastin Time (APTT):</strong></span> Evaluates the intrinsic and common coagulation pathways.</li>
+            <li><span style="color:var(--warning);"><strong>Fibrinogen Level:</strong></span> Assesses the final step of the coagulation cascade.</li>
+            <li><span style="color:var(--warning);"><strong>Specific Factor Assays:</strong></span> For Factor VIII, Factor IX, and Von Willebrand Factor (VWF) antigen and activity, if indicated.</li>
+            <li><span style="color:var(--warning);"><strong>Bleeding Time:</strong></span> Less commonly used but can assess platelet function and vascular integrity.</li>
+            <li><span style="color:var(--warning);"><strong>Platelet Function Tests:</strong></span> If a platelet function disorder is suspected.</li>
+        </ul>
+
+        <h2>Management Principles</h2>
+        <ul class="management-list">
+            <li><span style="color:var(--accent-2);"><strong>Treat the Underlying Cause:</strong></span> Address</li>
+        </ul>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const themeSelect = document.getElementById('theme-select');
+            const htmlTag = document.documentElement;
+
+            // Set initial theme from localStorage or default to 'clinical'
+            const savedTheme = localStorage.getItem('data-theme') || 'clinical';
+            htmlTag.setAttribute('data-theme', savedTheme);
+            themeSelect.value = savedTheme;
+
+            // Update theme on selection change
+            themeSelect.addEventListener('change', (event) => {
+                const newTheme = event.target.value;
+                htmlTag.setAttribute('data-theme', newTheme);
+                localStorage.setItem('data-theme', newTheme);
+            });
+        });
+    </script>
+<script>(function(){function rh(){var h=document.documentElement.scrollHeight||document.body.scrollHeight;if(h)window.parent.postMessage({__visualHeight:h},"*");}setTimeout(rh,150);setTimeout(rh,700);setTimeout(rh,2000);window.addEventListener("resize",rh);window.addEventListener("message",function(e){if(e.data&&e.data.__setTheme){document.documentElement.setAttribute("data-theme",e.data.__setTheme);setTimeout(rh,100);}});})()</script></body>
+</html>

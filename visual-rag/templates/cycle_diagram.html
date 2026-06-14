@@ -1,0 +1,199 @@
+<!-- HEAD -->
+<style>
+    .cycle-svg {
+        background-color: #07070a;
+    }
+    .cycle-node {
+        cursor: pointer;
+        transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), filter 0.25s;
+    }
+    .cycle-node:hover {
+        transform: scale(1.1);
+    }
+    .cycle-node.is-active circle {
+        fill: #8b5cf6;
+        stroke: #c084fc;
+        stroke-width: 3px;
+        filter: drop-shadow(0 0 8px rgba(139, 92, 246, 0.6));
+    }
+    .cycle-node.is-active text {
+        fill: #ffffff;
+        font-weight: bold;
+    }
+    .cycle-arrow {
+        stroke: #27272a;
+        stroke-width: 2px;
+        fill: none;
+        stroke-dasharray: 5;
+        animation: rotateDashes 30s linear infinite;
+    }
+    @keyframes rotateDashes {
+        to { stroke-dashoffset: -100; }
+    }
+</style>
+
+<!-- BODY -->
+<div class="w-full flex flex-col md:flex-row gap-6 animate-fade-in items-center justify-center">
+    <!-- Left side: The SVG Wheel -->
+    <div class="w-full md:w-1/2 flex items-center justify-center">
+        <div class="w-[380px] h-[380px] glass-panel rounded-full overflow-hidden p-4 bg-zinc-950/20 relative">
+            <svg id="cycle-canvas" class="w-full h-full cycle-svg rounded-full" viewBox="0 0 500 500">
+                <defs>
+                    <marker id="arrowhead" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                        <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#4b5563" />
+                    </marker>
+                    <filter id="center-glow">
+                        <feDropShadow dx="0" dy="0" stdDeviation="8" flood-color="#8b5cf6" flood-opacity="0.15" />
+                    </filter>
+                </defs>
+                
+                <!-- Circular Track Arrow -->
+                <circle cx="250" cy="250" r="150" class="cycle-arrow" stroke-width="1.5"></circle>
+                
+                <!-- Center Info Pane (rendered inside SVG for perfect centering) -->
+                <circle cx="250" cy="250" r="100" fill="#09090b" stroke="#1f2937" stroke-width="1.5" filter="url(#center-glow)"></circle>
+                
+                <!-- SVG groups for nodes and links -->
+                <g id="cycle-links"></g>
+                <g id="cycle-nodes"></g>
+            </svg>
+        </div>
+    </div>
+
+    <!-- Right side: Detail Overlay Description card -->
+    <div class="w-full md:w-1/2 flex flex-col gap-4">
+        <div class="glass-panel p-6 rounded-2xl bg-zinc-950/15 flex flex-col gap-3 min-h-[200px] border-purple-500/20 relative overflow-hidden">
+            <div class="absolute -right-4 -bottom-4 text-zinc-900/25 font-bold text-7xl select-none" id="step-index-bg">
+                01
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold tracking-widest uppercase bg-purple-500/10 text-purple-400 border border-purple-500/20" id="step-label-tag">
+                    Step 1
+                </span>
+            </div>
+            <h3 class="text-xl font-bold text-white leading-snug" id="step-title-text">Step Name</h3>
+            <p class="text-zinc-400 text-sm leading-relaxed" id="step-desc-text">Step details and chemical conversions go here.</p>
+        </div>
+
+        <!-- Walkthrough navigation -->
+        <div class="flex justify-between items-center px-2">
+            <button onclick="prevStep()" class="glass-panel px-4 py-2 rounded-xl text-zinc-400 hover:text-white hover:border-zinc-700 bg-zinc-900/30 text-xs transition">
+                ← Previous
+            </button>
+            <span class="text-zinc-500 text-xs" id="cycle-progress">1 / 5</span>
+            <button onclick="nextStep()" class="glass-panel px-4 py-2 rounded-xl text-purple-400 hover:text-purple-300 bg-zinc-900/30 text-xs font-semibold transition">
+                Next →
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- SCRIPT -->
+<script>
+    document.getElementById('template-name-label').innerText = 'Cycle Diagram Wheel';
+
+    let activeStepIdx = 0;
+    const steps = VISUAL_DATA.steps || [];
+
+    function renderCycle() {
+        const nodesGroup = document.getElementById('cycle-nodes');
+        nodesGroup.innerHTML = '';
+
+        if (steps.length === 0) return;
+
+        const cx = 250;
+        const cy = 250;
+        const radius = 150;
+
+        steps.forEach((step, idx) => {
+            // Distribute points evenly along the circle
+            const angle = (idx * 2 * Math.PI) / steps.length - Math.PI / 2;
+            const x = cx + radius * Math.cos(angle);
+            const y = cy + radius * Math.sin(angle);
+
+            // Create Node Group
+            const nodeG = document.createElementNS("http://www.w3.org/2000/svg", "g");
+            nodeG.setAttribute("class", `cycle-node ${idx === activeStepIdx ? 'is-active' : ''}`);
+            nodeG.setAttribute("transform", `translate(${x}, ${y})`);
+            nodeG.addEventListener('click', () => selectStep(idx));
+
+            // Inner circle
+            const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            circle.setAttribute("r", "20");
+            circle.setAttribute("fill", "#18181b");
+            circle.setAttribute("stroke", "#4b5563");
+            circle.setAttribute("stroke-width", "1.5");
+            nodeG.appendChild(circle);
+
+            // Step number text
+            const numText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            numText.setAttribute("text-anchor", "middle");
+            numText.setAttribute("y", "5");
+            numText.setAttribute("fill", "#9ca3af");
+            numText.setAttribute("font-size", "12px");
+            numText.setAttribute("font-weight", "500");
+            numText.textContent = idx + 1;
+            nodeG.appendChild(numText);
+
+            // Node Outer Label text (drawn outside the circle)
+            const labelText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            // Position label slightly further away radially
+            const labelDist = 38;
+            const lx = labelDist * Math.cos(angle);
+            const ly = labelDist * Math.sin(angle);
+            
+            // Adjust text anchor based on radial position
+            let anchor = "middle";
+            if (Math.cos(angle) > 0.3) anchor = "start";
+            else if (Math.cos(angle) < -0.3) anchor = "end";
+            
+            labelText.setAttribute("x", lx);
+            labelText.setAttribute("y", ly + 4);
+            labelText.setAttribute("text-anchor", anchor);
+            labelText.setAttribute("fill", idx === activeStepIdx ? "#ffffff" : "#a1a1aa");
+            labelText.setAttribute("font-size", "10px");
+            
+            let displayLabel = step.label;
+            if (displayLabel.length > 18) {
+                displayLabel = displayLabel.slice(0, 15) + "...";
+            }
+            labelText.textContent = displayLabel;
+            
+            nodeG.appendChild(labelText);
+            nodesGroup.appendChild(nodeG);
+        });
+
+        updateStepDisplay();
+    }
+
+    function selectStep(idx) {
+        activeStepIdx = idx;
+        renderCycle();
+    }
+
+    function updateStepDisplay() {
+        if (steps.length === 0) return;
+        const step = steps[activeStepIdx];
+        
+        document.getElementById('step-index-bg').innerText = String(activeStepIdx + 1).padStart(2, '0');
+        document.getElementById('step-label-tag').innerText = `Step ${activeStepIdx + 1} of ${steps.length}`;
+        document.getElementById('step-title-text').innerText = step.label;
+        document.getElementById('step-desc-text').innerText = step.detail;
+        document.getElementById('cycle-progress').innerText = `${activeStepIdx + 1} / ${steps.length}`;
+    }
+
+    function nextStep() {
+        if (steps.length === 0) return;
+        activeStepIdx = (activeStepIdx + 1) % steps.length;
+        renderCycle();
+    }
+
+    function prevStep() {
+        if (steps.length === 0) return;
+        activeStepIdx = (activeStepIdx - 1 + steps.length) % steps.length;
+        renderCycle();
+    }
+
+    // Initialize Cycle Diagram
+    renderCycle();
+</script>
